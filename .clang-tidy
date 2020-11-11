@@ -1,0 +1,10 @@
+Checks: "
+    -*,
+    readability-*, -readability-magic-numbers,
+    llvm-*, -llvm-namespace-comment, -llvm-include-order,
+    performance-*, -performance-unnecessary-value-param,
+    portability-*,
+    bugprone-*, -bugprone-macro-parentheses,
+    modernize-*, -modernize-use-trailing-return-type, -modernize-use-default-member-init,
+    clang-analyzer-security*
+"
