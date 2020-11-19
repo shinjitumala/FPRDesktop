@@ -24,13 +24,29 @@ class Pattern {
   protected:
     cairo_pattern_t *p;
 
+  public:
+    Pattern() : p{nullptr} {};
+
     /// Initialize the pattern.
     Pattern(decltype(p) p) : p{p} {}
+    Pattern &operator=(Pattern &&rhs) noexcept {
+        destroy();
+        p = rhs.p;
+        rhs.p = nullptr;
+        return *this;
+    }
 
     /// Cleanup patterns in the end.
-    ~Pattern() { cairo_pattern_destroy(p); }
+    ~Pattern() { destroy(); }
 
+  protected:
     operator decltype(p)() const { return p; };
+
+    void destroy() {
+        if (p != nullptr) {
+            cairo_pattern_destroy(p);
+        }
+    };
 };
 
 /// Linear pattern

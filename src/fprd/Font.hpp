@@ -21,12 +21,27 @@ class Font {
     cairo_font_face_t *f;
 
   public:
+    Font() : f{nullptr} {};
+
     Font(string &&family, cairo_font_slant_t s, cairo_font_weight_t w)
         : f{cairo_toy_font_face_create(family.c_str(), s, w)} {}
 
-    ~Font() { cairo_font_face_destroy(f); }
+    ~Font() { destroy(); }
+
+    Font &operator=(Font &&rhs) noexcept {
+        destroy();
+        f = rhs.f;
+        rhs.f = nullptr;
+        return *this;
+    };
 
   private:
     operator decltype(f)() const { return f; };
+
+    void destroy() {
+        if (f != nullptr) {
+            cairo_font_face_destroy(f);
+        }
+    }
 };
 }; // namespace fprd
