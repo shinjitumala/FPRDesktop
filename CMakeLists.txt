@@ -14,9 +14,9 @@ add_executable(fprdesktop)
 
 # Target properties
 target_compile_features(fprdesktop PUBLIC cxx_std_20)
-target_include_directories(fprdesktop PRIVATE src)
+target_include_directories(fprdesktop PRIVATE src /usr/include/freetype2)
 target_link_libraries(fprdesktop PRIVATE tbb # for parallel for loops.
-)
+                                         X11 cairo)
 # compile and link flags
 list(APPEND fprdesktop_compile_options -fno-rtti -fno-exceptions -Wall -g3)
 list(APPEND fprdesktop_link_options)
@@ -34,3 +34,5 @@ target_link_options(fprdesktop PUBLIC ${fprdesktop_link_options})
 # Sources
 doxygen_add_docs(doc src include)
 target_sources(fprdesktop PRIVATE src/main.cpp)
+target_precompile_headers(fprdesktop PRIVATE src/dbg/Log.hpp
+                          src/fprd/Window.hpp)
