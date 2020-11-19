@@ -13,21 +13,22 @@
 namespace fprd {
 
 template <Source Frame = Color, Source Empty = Color, Source Filled = Color>
-class Bar {
+struct Bar {
     Position bar;
     Size s_bar;
     Position bar_internal;
     Size s_bar_internal;
 
-  public:
     Frame frame;
     Empty empty;
     Filled filled;
 
-    Bar(Position pos, Size area, Margin to_bar, Margin to_internal_bar)
+    Bar(Position pos, Size area, Margin to_bar, Margin to_internal_bar,
+        Frame &&frame = {}, Empty &&empty = {}, Filled &&filled = {})
         : bar{pos - to_bar}, s_bar{area - to_bar},
-          bar_internal{bar - to_internal_bar}, s_bar_internal{
-                                                   s_bar - to_internal_bar} {}
+          bar_internal{bar - to_internal_bar}, s_bar_internal{s_bar -
+                                                              to_internal_bar},
+          frame{move(frame)}, empty{move(empty)}, filled{move(filled)} {}
 
     void update(FPRWindow &w, double percent) const {
         w.rectangle(bar, s_bar);
