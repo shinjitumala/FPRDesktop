@@ -22,6 +22,8 @@ struct Color {
     double b;
     double a;
 
+    Color() = default;
+
     /// Initialize from raw doubles.
     /// @param r
     /// @param g
