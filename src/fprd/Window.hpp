@@ -11,6 +11,8 @@
 #include <cairo/cairo-xlib.h>
 #include <cairo/cairo.h>
 #include <fprd/Color.hpp>
+#include <fprd/Font.hpp>
+#include <fprd/Image.hpp>
 #include <fprd/Pattern.hpp>
 #include <fprd/X11/Utils.hpp>
 
@@ -45,6 +47,10 @@ class FPRWindow {
     /// Set the current source to a pattern.
     /// @param p
     void set_source(const Pattern &p) { cairo_set_source(c, p); }
+    /// Set the current source to an Image.
+    void set_source(const Image &i, pair<double, double> pos) {
+        cairo_set_source_surface(c, i, pos.first, pos.second);
+    };
 
     /// Stroke along the current path.
     void stroke() { cairo_stroke(c); }
@@ -77,7 +83,7 @@ class FPRWindow {
 
     /// Set the font to a certain one.
     /// @param font
-    void set_font(cairo_font_face_t *font) { cairo_set_font_face(c, font); }
+    void set_font(const Font &font) { cairo_set_font_face(c, font); }
     /// Set the font size.
     /// @param size
     void set_font_size(double size) { cairo_set_font_size(c, size); };
