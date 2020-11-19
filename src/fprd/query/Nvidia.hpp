@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "dbg/Logger.hpp"
+#include <dbg/Logger.hpp>
 #include <fprd/System.hpp>
 
 namespace fprd::query {
