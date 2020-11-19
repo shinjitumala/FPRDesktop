@@ -22,7 +22,9 @@ using namespace std;
 #ifndef NDEBUG
 /// Only expaned in debug builds.
 #define dbg(...) __VA_ARGS__
-#define dbg_out(...) ::dbg::out << __VA_ARGS__ << ::std::endl
+#define dbg_out(...)                                                           \
+    ::dbg::out << "[" << ::std::experimental::source_location::current()       \
+               << "] " << __VA_ARGS__ << ::std::endl
 #else
 #define dbg(...)
 #define dbg_out(...)
