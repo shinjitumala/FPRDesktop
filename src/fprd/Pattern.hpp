@@ -35,6 +35,7 @@ class Pattern {
         rhs.p = nullptr;
         return *this;
     }
+    Pattern(Pattern &&p) noexcept : Pattern() { *this = move(p); }
 
     /// Cleanup patterns in the end.
     ~Pattern() { destroy(); }

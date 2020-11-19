@@ -34,6 +34,7 @@ class Font {
         rhs.f = nullptr;
         return *this;
     };
+    Font(Font &&f) noexcept : Font() { *this = move(f); };
 
   private:
     operator decltype(f)() const { return f; };
