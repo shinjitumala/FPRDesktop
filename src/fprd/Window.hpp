@@ -19,6 +19,18 @@
 namespace fprd {
 using namespace std;
 
+/// For readability.
+struct Position {
+    double x;
+    double y;
+};
+
+/// For readability.
+struct Size {
+    double w;
+    double h;
+};
+
 /// Is this design pattern bad?
 /// I feel like this is like a GOD-class.
 class FPRWindow {
@@ -36,7 +48,7 @@ class FPRWindow {
     /// @param x11
     /// @param pos
     /// @param size
-    FPRWindow(Display *x11, pair<int, int> pos, pair<int, int> size)
+    FPRWindow(Display *x11, Position pos, Size size)
         : FPRWindow{x11, XDefaultScreen(x11), pos, size} {}
 
     /// Change the current source to a color.
@@ -48,8 +60,8 @@ class FPRWindow {
     /// @param p
     void set_source(const Pattern &p) { cairo_set_source(c, p); }
     /// Set the current source to an Image.
-    void set_source(const Image &i, pair<double, double> pos) {
-        cairo_set_source_surface(c, i, pos.first, pos.second);
+    void set_source(const Image &i, Size pos) {
+        cairo_set_source_surface(c, i, pos.w, pos.h);
     };
 
     /// Stroke along the current path.
@@ -62,24 +74,20 @@ class FPRWindow {
     /// Draw a rectangle.
     /// @param pos
     /// @param size
-    void rectangle(pair<double, double> pos, pair<double, double> size) {
-        cairo_rectangle(c, pos.first, pos.second, size.first, size.second);
+    void rectangle(Position pos, Size size) {
+        cairo_rectangle(c, pos.x, pos.y, size.w, size.h);
     }
 
     /// Move the drawing cursor to a position.
     /// @param pos
-    void move_to(pair<double, double> pos) {
-        cairo_move_to(c, pos.first, pos.second);
-    }
+    void move_to(Position pos) { cairo_move_to(c, pos.x, pos.y); }
 
     /// Change the drawing line width.
     /// @param width
     void set_line_width(double width) { cairo_set_line_width(c, width); }
     /// Draw a line to pos from the current cursor position.
     /// @param pos
-    void line_to(pair<double, double> pos) {
-        cairo_line_to(c, pos.first, pos.second);
-    }
+    void line_to(Position pos) { cairo_line_to(c, pos.x, pos.y); }
 
     /// Set the font to a certain one.
     /// @param font
@@ -110,7 +118,7 @@ class FPRWindow {
     /// @return auto
     auto atom(string &&name) { return XInternAtom(x11, name.data(), False); }
 
-    FPRWindow(Display *x11, int screen, pair<int, int> pos, pair<int, int> size)
+    FPRWindow(Display *x11, int screen, Position pos, Size size)
         : x11{x11}, w{[x11, screen, pos, size, this]() {
               const auto root{XRootWindow(x11, screen)};
               const auto w{[x11, root, size]() {
@@ -134,8 +142,9 @@ class FPRWindow {
                   };
 
                   return XCreateWindow(
-                      x11, root, 0, 0, size.first, size.second, 0,
-                      CopyFromParent, InputOutput, CopyFromParent,
+                      x11, root, 0, 0, static_cast<uint>(size.w),
+                      static_cast<uint>(size.h), 0, CopyFromParent, InputOutput,
+                      CopyFromParent,
                       CWOverrideRedirect | CWBackingStore | CWBackPixel, &attr);
               }()};
 
@@ -159,11 +168,13 @@ class FPRWindow {
               XSelectInput(
                   x11, w, ExposureMask | StructureNotifyMask | ButtonPressMask);
 
-              XMoveWindow(x11, w, pos.first, pos.second);
+              XMoveWindow(x11, w, static_cast<uint>(pos.x),
+                          static_cast<uint>(pos.y));
               return w;
           }()},
           surface{cairo_xlib_surface_create(x11, w, XDefaultVisual(x11, screen),
-                                            size.first, size.second)},
+                                            static_cast<uint>(size.w),
+                                            static_cast<uint>(size.h))},
           c{cairo_create(surface)} {}
 };
 }; // namespace fprd
