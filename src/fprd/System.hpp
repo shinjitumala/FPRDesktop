@@ -27,8 +27,13 @@ class Executor : protected fdstreambuf, protected istream {
 
     ~Executor() override { ::pclose(f); }
 
+    using istream::operator bool;
+
   protected:
-    auto get_line() {
+    auto get_line() -> string {
+        if (istream::operator bool() == false) {
+            return "";
+        }
         string s;
         std::getline(static_cast<istream &>(*this), s);
         return s;
@@ -63,6 +68,9 @@ class ExecutorLine : public Executor {
         for (auto i{0U}; i < lines; i++) {
             static_cast<istream *>(this)->ignore(
                 numeric_limits<streamsize>::max(), '\n');
+            if (istream::operator bool() == false) {
+                break;
+            }
         }
     }
 };
