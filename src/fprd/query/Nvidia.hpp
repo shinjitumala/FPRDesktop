@@ -53,42 +53,56 @@ template <uint gpu_id> struct NvidiaProcesses {
     };
 
     array<Process, max> processes;
+    vector<Process> proc_buf;
 
     NvidiaProcesses() : processes{} {}
 
     void update() {
         ExecutorLine e{query};
         auto line{13};
-        bool end_flag{false};
-        for (auto &p : processes) {
-            if (end_flag) {
-                p.id = 0;
-                continue;
-            }
-            p.id = stoul(e.get_line(line).substr(44, 5));
-            p.type = e.get_line(line + 1)[44];
-            p.name = [&]() -> array<char, max_name_len> {
-                const auto s{e.get_line(line + 2)};
-                const auto s_begin{s.begin() + 44};
-                const auto size{s.end() - s_begin};
-                array<char, max_name_len> a{};
-                if (size <= max_name_len) {
-                    copy(s_begin, s.end(), a.data());
-                } else {
-                    copy(s_begin, s_begin + max_name_len - 3, a.data());
-                    a[max_name_len - 3] = '.';
-                    a[max_name_len - 2] = '.';
-                    a[max_name_len - 1] = '.';
-                }
-                return a;
-            }();
-            p.memory = stoul(e.get_line(line + 3).substr(44, 10));
+        proc_buf.resize(0);
+
+        for (;;) {
+            const auto p{[&]() {
+                Process p;
+                p.id = stoul(e.get_line(line).substr(44, 5));
+                p.type = e.get_line(line + 1)[44];
+                p.name = [&]() -> array<char, max_name_len> {
+                    const auto s{e.get_line(line + 2)};
+                    const auto s_begin{s.begin() + 44};
+                    const auto s_end{find(s_begin, s.end(), ' ')};
+                    const auto size{s_end - s_begin};
+                    array<char, max_name_len> a{};
+                    if (size <= max_name_len) {
+                        copy(s_begin, s.end(), a.data());
+                    } else {
+                        copy(s_end - max_name_len + 3, s_end, a.data());
+                        a[0] = '.';
+                        a[1] = '.';
+                        a[2] = '.';
+                    }
+                    return a;
+                }();
+                p.memory = stoul(e.get_line(line + 3).substr(44, 10));
+                return p;
+            }()};
+
+            proc_buf.insert(upper_bound(proc_buf.begin(), proc_buf.end(), p,
+                                        greater<Process>()),
+                            p);
+
             line += 6;
-            if (e.get_line(line - 1).empty()) {
-                end_flag = true;
+            if (e.get_line(line - 1), e == false) {
+                break;
             }
         }
-        sort(processes.begin(), processes.end(), greater<Process>());
+        if (proc_buf.size() >= max) {
+            copy(proc_buf.begin(), proc_buf.begin() + max, processes.data());
+        } else {
+            copy(proc_buf.begin(), proc_buf.end(), processes.data());
+            for_each(processes.begin() + proc_buf.size(), processes.end(),
+                     [](auto &p) { p.id = 0; });
+        }
     }
 };
 
