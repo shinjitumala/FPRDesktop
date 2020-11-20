@@ -42,4 +42,27 @@ struct Bar {
         w.fill();
     }
 };
+
+template <Source Frame = Color, Source Empty = Color, Source Filled = Color>
+struct BarSmooth : protected Bar<Frame, Empty, Filled> {
+  private:
+    using Base = Bar<Frame, Empty, Filled>;
+
+  public:
+    /// The currently displayed percentage.
+    float current{};
+    /// The targeted percentage.
+    float target{};
+    /// Smoothness (Higher is smoother)
+    short smoothness;
+
+    BarSmooth(Base &&bar, short smoothness)
+        : Base{move(bar)}, smoothness{smoothness} {}
+
+    void update_target(float percent) { target = percent; }
+    void update(FPRWindow &w) {
+        current = current + (float)(target - current) / smoothness;
+        Base::update(w, current);
+    };
+};
 }; // namespace fprd
