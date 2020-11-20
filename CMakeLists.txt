@@ -14,7 +14,8 @@ add_executable(fprdesktop)
 
 # Target properties
 target_compile_features(fprdesktop PUBLIC cxx_std_20)
-target_include_directories(fprdesktop PRIVATE src /usr/include/freetype2)
+target_include_directories(
+  fprdesktop PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}/src /usr/include/freetype2)
 target_link_libraries(fprdesktop PRIVATE tbb # for parallel for loops.
                                          X11 cairo)
 # compile and link flags
@@ -36,3 +37,7 @@ doxygen_add_docs(doc src include)
 target_sources(fprdesktop PRIVATE src/main.cpp)
 target_precompile_headers(fprdesktop PRIVATE src/dbg/Log.hpp
                           src/fprd/Window.hpp)
+
+# Configured files
+configure_file(src/fprd/Config.cmake.hpp
+               ${CMAKE_CURRENT_BINARY_DIR}/src/fprd/Config.hpp)
