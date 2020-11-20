@@ -95,5 +95,8 @@ template <uint gpu_id> struct Nvidia {
 
         return os;
     }
+
+    Nvidia(const Nvidia &) = delete;
+    Nvidia(Nvidia &&) = delete;
 };
 }; // namespace fprd::query
