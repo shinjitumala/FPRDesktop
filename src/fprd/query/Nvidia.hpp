@@ -12,7 +12,88 @@
 #include <fprd/System.hpp>
 
 namespace fprd::query {
+
+template <uint gpu_id> struct NvidiaProcesses {
+  private:
+    inline static const string query{"nvidia-smi -q -d PIDS -i " +
+                                     to_string(gpu_id)};
+
+  public:
+    /// Maximum number of processes shown.
+    static const u_char max{5};
+    /// Maximum length of the process name.
+    static const u_char max_name_len{22};
+
+    /// A GPU process
+    struct Process {
+        ulong id;
+        char type;
+        array<char, max_name_len> name;
+        ushort memory; // MiB
+
+        /// If the id is non-zero, it means it's a valid process.
+        /// @return true
+        /// @return false
+        [[nodiscard]] bool is_valid() const { return id != 0; }
+
+        auto operator<=>(const Process &rhs) const {
+            return memory <=> rhs.memory;
+        };
+
+        ostream &print(ostream &os) const {
+            if (is_valid()) {
+                os << "id: " << id << ", type: " << type
+                   << ", name: " << string{name.data()}
+                   << ", Memory: " << memory << " MiB";
+            } else {
+                os << "<invalid>";
+            }
+            return os;
+        }
+    };
+
+    array<Process, max> processes;
+
+    NvidiaProcesses() : processes{} {}
+
+    void update() {
+        ExecutorLine e{query};
+        auto line{13};
+        bool end_flag{false};
+        for (auto &p : processes) {
+            if (end_flag) {
+                p.id = 0;
+                continue;
+            }
+            p.id = stoul(e.get_line(line).substr(44, 5));
+            p.type = e.get_line(line + 1)[44];
+            p.name = [&]() -> array<char, max_name_len> {
+                const auto s{e.get_line(line + 2)};
+                const auto s_begin{s.begin() + 44};
+                const auto size{s.end() - s_begin};
+                array<char, max_name_len> a{};
+                if (size <= max_name_len) {
+                    copy(s_begin, s.end(), a.data());
+                } else {
+                    copy(s_begin, s_begin + max_name_len - 3, a.data());
+                    a[max_name_len - 3] = '.';
+                    a[max_name_len - 2] = '.';
+                    a[max_name_len - 1] = '.';
+                }
+                return a;
+            }();
+            p.memory = stoul(e.get_line(line + 3).substr(44, 10));
+            line += 6;
+            if (e.get_line(line - 1).empty()) {
+                end_flag = true;
+            }
+        }
+        sort(processes.begin(), processes.end(), greater<Process>());
+    }
+};
+
 template <uint gpu_id> struct Nvidia {
+  private:
     inline static const string query_init{
         "nvidia-smi --query-gpu=name,memory.total,power.max_limit --format=csv "
         "-i " +
@@ -22,6 +103,9 @@ template <uint gpu_id> struct Nvidia {
         "--query-gpu=fan.speed,utilization.gpu,utilization.memory,"
         "temperature.gpu,power.draw,clocks.gr,clocks.mem --format=csv -i " +
         to_string(gpu_id) + " | tail -n 1"};
+
+  public:
+    NvidiaProcesses<gpu_id> procs;
 
     /// Data only queried once per run.
     string name;
@@ -69,6 +153,7 @@ template <uint gpu_id> struct Nvidia {
         power = stof(e.at(4));
         clock_gpu = static_cast<short>(stoi(e.at(5)));
         clock_mem = static_cast<short>(stoi(e.at(6)));
+        procs.update();
     }
 
     ostream &print(ostream &os) const {
@@ -97,6 +182,6 @@ template <uint gpu_id> struct Nvidia {
     }
 
     Nvidia(const Nvidia &) = delete;
-    Nvidia(Nvidia &&) = delete;
+    Nvidia(Nvidia &&) noexcept = default;
 };
 }; // namespace fprd::query
