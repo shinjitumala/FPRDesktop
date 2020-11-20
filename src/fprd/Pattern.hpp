@@ -11,6 +11,7 @@
 #include <cairo/cairo.h>
 #include <fprd/Color.hpp>
 #include <utility>
+#include <fprd/Utils.hpp>
 
 namespace fprd {
 using namespace std;
@@ -55,10 +56,9 @@ struct PatternLinear : public Pattern {
     /// @param start
     /// @param end
     /// @param stops List of pairs of offset and color.
-    PatternLinear(pair<double, double> start, pair<double, double> end,
+    PatternLinear(Position start, Position end,
                   initializer_list<pair<double, Color>> stops)
-        : Pattern{cairo_pattern_create_linear(start.first, start.second,
-                                              end.first, end.second)} {
+        : Pattern{cairo_pattern_create_linear(start.x, start.y, end.x, end.y)} {
         for (auto [o, c] : stops) {
             cairo_pattern_add_color_stop_rgba(p, o, c.r, c.b, c.b, c.a);
         }
