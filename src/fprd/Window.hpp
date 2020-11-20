@@ -15,21 +15,13 @@
 #include <fprd/Image.hpp>
 #include <fprd/Pattern.hpp>
 #include <fprd/X11/Utils.hpp>
+#include <fprd/Utils.hpp>
 
 namespace fprd {
 using namespace std;
 
-/// For readability.
-struct Position {
-    double x;
-    double y;
-};
-
-/// For readability.
-struct Size {
-    double w;
-    double h;
-};
+template <class O>
+concept Source = is_same_v<O, Color> || is_base_of_v<Pattern, O>;
 
 /// Is this design pattern bad?
 /// I feel like this is like a GOD-class.
@@ -60,9 +52,18 @@ class FPRWindow {
     /// @param p
     void set_source(const Pattern &p) { cairo_set_source(c, p); }
     /// Set the current source to an Image.
-    void set_source(const Image &i, Size pos) {
-        cairo_set_source_surface(c, i, pos.w, pos.h);
+    void set_source(const Image &i, Position pos) {
+        cairo_set_source_surface(c, i, pos.x, pos.y);
     };
+
+    void draw_image(const Image &i, Position pos, Size size) {
+        cairo_save(c);
+        cairo_translate(c, pos.x, pos.y);
+        cairo_scale(c, size.w / i.w, size.h / i.h);
+        cairo_set_source_surface(c, i, 0, 0);
+        clear();
+        cairo_restore(c);
+    }
 
     /// Stroke along the current path.
     void stroke() { cairo_stroke(c); }
@@ -98,6 +99,23 @@ class FPRWindow {
     /// Print text on the screen.
     /// @param s
     void print_text(string &&s) { cairo_show_text(c, s.c_str()); }
+
+    /// Obtain the font extent.
+    /// @param font
+    /// @return auto
+    auto get_font_extent(const Font &font) {
+        cairo_font_extents_t e;
+        cairo_font_extents(c, &e);
+        return e;
+    }
+    /// Obtain the text extent.
+    /// @param s
+    /// @return auto
+    auto get_text_extent(const string &s) {
+        cairo_text_extents_t e;
+        cairo_text_extents(c, s.c_str(), &e);
+        return e;
+    }
 
     /// Flush the draw commands.
     void flush() {
