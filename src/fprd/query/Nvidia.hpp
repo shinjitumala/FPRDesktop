@@ -92,7 +92,7 @@ template <uint gpu_id> struct NvidiaProcesses {
                             p);
 
             line += 6;
-            if (e.get_line(line - 1), e == false) {
+            if (e.get_line(line - 1), !e.operator bool()) {
                 break;
             }
         }
