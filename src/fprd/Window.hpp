@@ -161,24 +161,12 @@ class FPRWindow {
                       CWOverrideRedirect | CWBackingStore | CWBackPixel, attr);
               }()};
 
-              XWMHints hints{
-                  .flags = InputHint | StateHint,
-                  .input = True,
-                  .initial_state = NormalState,
-              };
-              //   string name{"fprdesktop"};
-              //   XClassHint chint{name.data(), name.data()};
-              x11.set_WM_properties(w, "", "", {}, nullopt, hints, nullopt);
-              x11.set_WM_protocols(w, {});
-
               x11.change_property(w, x11.atom("_NET_WM_WINDOW_TYPE"), XA_ATOM,
                                   32, PropModeReplace,
                                   array<unsigned long, 1>{
                                       x11.atom("_NET_WM_WINDOW_TYPE_DESKTOP")});
 
               x11.map_window(w);
-              x11.select_input(w, ExposureMask | StructureNotifyMask |
-                                      ButtonPressMask);
 
               x11.move_window(w, pos);
               return w;
