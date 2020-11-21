@@ -14,8 +14,8 @@
 #include <fprd/Font.hpp>
 #include <fprd/Image.hpp>
 #include <fprd/Pattern.hpp>
-#include <fprd/X11/Utils.hpp>
 #include <fprd/Utils.hpp>
+#include <fprd/X11/Utils.hpp>
 
 namespace fprd {
 using namespace std;

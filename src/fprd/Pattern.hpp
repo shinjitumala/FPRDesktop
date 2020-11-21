@@ -10,8 +10,8 @@
 
 #include <cairo/cairo.h>
 #include <fprd/Color.hpp>
-#include <utility>
 #include <fprd/Utils.hpp>
+#include <utility>
 
 namespace fprd {
 using namespace std;

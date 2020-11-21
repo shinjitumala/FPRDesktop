@@ -181,7 +181,9 @@ template <uint gpu_id> class Nvidia {
             oss << " ";
             oss << setfill(' ') << setw(4) << right << p.type;
             oss << " ";
-            oss << setfill(' ') << setw(query::NvidiaProcesses<gpu_id>::max_name_len) << left << string{p.name.data()};
+            oss << setfill(' ')
+                << setw(query::NvidiaProcesses<gpu_id>::max_name_len) << left
+                << string{p.name.data()};
             oss << " ";
             oss << setfill(' ') << setw(9) << right
                 << (std::to_string(p.memory) + " MiB");

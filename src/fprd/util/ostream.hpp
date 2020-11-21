@@ -12,12 +12,12 @@
 #include <concepts>
 #include <dbg/Logger.hpp>
 #include <experimental/source_location>
+#include <filesystem>
 #include <iomanip>
 #include <ostream>
 #include <ranges>
 #include <type_traits>
 #include <vector>
-#include <filesystem>
 
 namespace fprd {
 using namespace std;
@@ -80,7 +80,8 @@ ostream &operator<<(ostream &os, const source_location loc) {
 
 /// Operator overload for vector.
 // template <ranges::range R>
-//     ostream &operator<<(ostream &os, const R &vec) requires(!StdPrintable<R>) &&
+//     ostream &operator<<(ostream &os, const R &vec) requires(!StdPrintable<R>)
+//     &&
 //     (!is_same_v<std::filesystem::path, R>) && (!is_fundamental_v<R>){
 //     os << "{" << nl;
 //     {
