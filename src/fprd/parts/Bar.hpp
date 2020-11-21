@@ -14,17 +14,18 @@ namespace fprd {
 
 template <Source Frame = Color, Source Empty = Color, Source Filled = Color>
 struct Bar {
-    Position bar;
-    Size s_bar;
-    Position bar_internal;
-    Size s_bar_internal;
+    Position<float> bar;
+    Size<float> s_bar;
+    Position<float> bar_internal;
+    Size<float> s_bar_internal;
 
     Frame frame;
     Empty empty;
     Filled filled;
 
-    Bar(Position pos, Size area, Margin to_bar, Margin to_internal_bar,
-        Frame &&frame = {}, Empty &&empty = {}, Filled &&filled = {})
+    Bar(Position<float> pos, Size<float> area, Margin<float> to_bar,
+        Margin<float> to_internal_bar, Frame &&frame = {}, Empty &&empty = {},
+        Filled &&filled = {})
         : bar{pos - to_bar}, s_bar{area - to_bar},
           bar_internal{bar - to_internal_bar}, s_bar_internal{s_bar -
                                                               to_internal_bar},

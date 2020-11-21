@@ -33,7 +33,7 @@ template <uint gpu_id> class Nvidia {
     inline static const float b_w{w - L3_h * 2};
 
     query::Nvidia<gpu_id> query;
-    Position pos;
+    Position<float> pos;
 
     inline static const Image gpu{
         resources / "icons" / "Computer" / "004-video-card.png", green};
@@ -57,80 +57,86 @@ template <uint gpu_id> class Nvidia {
         procs;
 
   public:
-    Nvidia(FPRWindow &w, query::Nvidia<gpu_id> &&query, Position pos)
+    Nvidia(FPRWindow &w, query::Nvidia<gpu_id> &&query, Position<float> pos)
         : query{move(query)}, pos{pos},
-          util{Bar{pos + Position{L3_h * 2, L2_h},
+          util{Bar{pos + Position<float>{L3_h * 2, L2_h},
                    {b_w, L3_h},
                    L3_m,
                    L3_m,
                    Color{grey},
                    Color{black},
-                   PatternLinear{pos + Position{L3_h * 2, L2_h},
+                   PatternLinear{pos + Position<float>{L3_h * 2, L2_h},
                                  {b_w, 0},
                                  {{0, {green}}, {0.5, {yellow}}, {1, {red}}}}},
                100},
-          util_t{pos + Position{L3_h * 2, L2_h}, L3_area(b_w), L3_m * 3,
+          util_t{pos + Position<float>{L3_h * 2, L2_h}, L3_area(b_w), L3_m * 3,
                  noto_sans},
-          mem{Bar{pos + Position{L3_h * 2, L2_h + L3_h},
+          mem{Bar{pos + Position<float>{L3_h * 2, L2_h + L3_h},
                   {b_w, L3_h},
                   L3_m,
                   L3_m,
                   Color{grey},
                   Color{black},
-                  PatternLinear{pos + Position{L3_h * 2, L2_h + L3_h},
+                  PatternLinear{pos + Position<float>{L3_h * 2, L2_h + L3_h},
                                 {b_w, 0},
                                 {{0, {green}}, {0.5, {yellow}}, {1, {red}}}}},
               100},
-          mem_t{pos + Position{L3_h * 2, L2_h + L3_h}, L3_area(b_w), L3_m * 3,
-                noto_sans},
-          temp{pos + Position{L3_h * 3, L2_h + L3_h * 2},
+          mem_t{pos + Position<float>{L3_h * 2, L2_h + L3_h}, L3_area(b_w),
+                L3_m * 3, noto_sans},
+          temp{pos + Position<float>{L3_h * 3, L2_h + L3_h * 2},
                L3_area((Nvidia::w - L3_h * 2) / 3 - L3_h), L3_m * 2, noto_sans},
-          power{pos + Position{L3_h * 3 + (Nvidia::w - L3_h * 2) / 3,
-                               L2_h + L3_h * 2},
+          power{pos + Position<float>{L3_h * 3 + (Nvidia::w - L3_h * 2) / 3,
+                                      L2_h + L3_h * 2},
                 L3_area((Nvidia::w - L3_h * 2) / 3 - L3_h), L3_m * 2,
                 noto_sans},
-          fan{pos + Position{L3_h * 3 + (Nvidia::w - L3_h * 2) / 3 * 2,
-                             L2_h + L3_h * 2},
+          fan{pos + Position<float>{L3_h * 3 + (Nvidia::w - L3_h * 2) / 3 * 2,
+                                    L2_h + L3_h * 2},
               L3_area((Nvidia::w - L3_h * 2) / 3 - L3_h), L3_m * 2, noto_sans},
-          procs{
-              Text<true, TextAlign::left>{pos + Position{L3_h, L2_h + L3_h * 4},
-                                          L3_area(Nvidia::w - L3_h), L3_m * 2,
-                                          noto_sans_bold, Color{white}},
-              {pos + Position{L3_h, L2_h + L3_h * 5}, L3_area(Nvidia::w - L3_h),
-               L3_m * 2, noto_sans_bold, Color{white}},
-              {pos + Position{L3_h, L2_h + L3_h * 6}, L3_area(Nvidia::w - L3_h),
-               L3_m * 2, noto_sans_bold, Color{white}},
-              {pos + Position{L3_h, L2_h + L3_h * 7}, L3_area(Nvidia::w - L3_h),
-               L3_m * 2, noto_sans_bold, Color{white}},
-              {pos + Position{L3_h, L2_h + L3_h * 8}, L3_area(Nvidia::w - L3_h),
-               L3_m * 2, noto_sans_bold, Color{white}}}
+          procs{Text<true, TextAlign::left>{
+                    pos + Position<float>{L3_h, L2_h + L3_h * 4},
+                    L3_area(Nvidia::w - L3_h), L3_m * 2, noto_sans_bold,
+                    Color{white}},
+                {pos + Position<float>{L3_h, L2_h + L3_h * 5},
+                 L3_area(Nvidia::w - L3_h), L3_m * 2, noto_sans_bold,
+                 Color{white}},
+                {pos + Position<float>{L3_h, L2_h + L3_h * 6},
+                 L3_area(Nvidia::w - L3_h), L3_m * 2, noto_sans_bold,
+                 Color{white}},
+                {pos + Position<float>{L3_h, L2_h + L3_h * 7},
+                 L3_area(Nvidia::w - L3_h), L3_m * 2, noto_sans_bold,
+                 Color{white}},
+                {pos + Position<float>{L3_h, L2_h + L3_h * 8},
+                 L3_area(Nvidia::w - L3_h), L3_m * 2, noto_sans_bold,
+                 Color{white}}}
 
     {
-        Text<false, TextAlign::left>{pos + Position{L2_h, 0},
+        Text<false, TextAlign::left>{pos + Position<float>{L2_h, 0},
                                      L2_area(Nvidia::w), L2_m * 2,
                                      noto_sans_bold, Color{green}}
             .update(w, string{this->query.name});
         w.draw_image(gpu, pos - L2_m, L2_area(L2_h) - L2_m);
-        Text<false, TextAlign::center>{pos + Position{L3_h, L2_h},
+        Text<false, TextAlign::center>{pos + Position<float>{L3_h, L2_h},
                                        L3_area(L3_h), L3_m * 2, noto_sans_bold,
                                        Color{white}}
             .update(w, "U");
-        Text<false, TextAlign::center>{pos + Position{L3_h, L2_h + L3_h},
+        Text<false, TextAlign::center>{pos + Position<float>{L3_h, L2_h + L3_h},
                                        L3_area(L3_h), L3_m * 2, noto_sans_bold,
                                        Color{white}}
             .update(w, "M");
-        auto last_pos{pos + Position{L3_h, L2_h + L3_h * 2}};
-        w.draw_image(temp_i, last_pos + Position{L3_h, 0} - L3_m,
+        auto last_pos{pos + Position<float>{L3_h, L2_h + L3_h * 2}};
+        w.draw_image(temp_i, last_pos + Position<float>{L3_h, 0} - L3_m,
                      L3_area(L3_h) - L3_m);
         w.draw_image(power_i,
-                     last_pos + Position{L3_h + (Nvidia::w - L3_h * 2) / 3, 0} -
-                         L3_m,
-                     L3_area(L3_h) - L3_m);
-        w.draw_image(fan_i,
                      last_pos +
-                         Position{L3_h + (Nvidia::w - L3_h * 2) / 3 * 2, 0} -
+                         Position<float>{L3_h + (Nvidia::w - L3_h * 2) / 3, 0} -
                          L3_m,
                      L3_area(L3_h) - L3_m);
+        w.draw_image(
+            fan_i,
+            last_pos +
+                Position<float>{L3_h + (Nvidia::w - L3_h * 2) / 3 * 2, 0} -
+                L3_m,
+            L3_area(L3_h) - L3_m);
 
         /// Processes
         ostringstream oss;
@@ -143,9 +149,9 @@ template <uint gpu_id> class Nvidia {
             << "Name";
         oss << " ";
         oss << setfill(' ') << setw(9) << right << "Memory";
-        Text<false, TextAlign::left>{pos + Position{L3_h, L2_h + L3_h * 3},
-                                     L3_area(Nvidia::w - L3_h), L3_m * 2,
-                                     noto_sans_bold, Color{white}}
+        Text<false, TextAlign::left>{
+            pos + Position<float>{L3_h, L2_h + L3_h * 3},
+            L3_area(Nvidia::w - L3_h), L3_m * 2, noto_sans_bold, Color{white}}
             .update(w, oss.str());
     }
 

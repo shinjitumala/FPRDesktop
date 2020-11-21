@@ -21,17 +21,17 @@ enum class TextAlign : u_char {
 template <bool clear = true, TextAlign vertical = TextAlign::left,
           Source Background = Color, Source Foreground = Color>
 struct Text {
-    Position pos;
-    Size area;
-    Margin m;
+    Position<float> pos;
+    Size<float> area;
+    Margin<float> m;
     double size;
-    Position text_pos;
+    Position<float> text_pos;
     const Font &f;
 
     Background bg;
     Foreground fg;
 
-    Text(Position pos, Size area, Margin m, const Font &f,
+    Text(Position<float> pos, Size<float> area, Margin<float> m, const Font &f,
          Foreground &&fg = {"ffffff"}, Background &&bg = {"000000"})
         : pos{pos}, area{area}, m{m}, size{(area - m).h}, text_pos{[&]() {
               auto p{pos - m};

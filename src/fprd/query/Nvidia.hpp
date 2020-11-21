@@ -8,10 +8,13 @@
 
 #pragma once
 
+#include <NVCtrl/NVCtrl.h>
 #include <dbg/Logger.hpp>
 #include <fprd/System.hpp>
 
 namespace fprd::query {
+
+struct NVCtrl {};
 
 template <uint gpu_id> struct NvidiaProcesses {
   private:
