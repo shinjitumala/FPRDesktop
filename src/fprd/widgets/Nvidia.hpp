@@ -9,34 +9,39 @@
 #pragma once
 
 #include <fprd/Config.hpp>
+#include <fprd/NVML.hpp>
 #include <fprd/Pattern.hpp>
 #include <fprd/Theme.hpp>
 #include <fprd/Window.hpp>
-#include <fprd/parts/Bar.hpp>
+#include <fprd/parts/ArcBar.hpp>
 #include <fprd/parts/Text.hpp>
-#include <fprd/query/Nvidia.hpp>
 #include <fprd/util/to_string.hpp>
 #include <iomanip>
+#include <ranges>
 #include <sstream>
 #include <string>
+#include <utility>
 
 namespace fprd {
 using namespace std;
 namespace widget {
 using namespace theme;
-template <uint gpu_id> class Nvidia {
-  public:
-    inline static const float w{330};
-    inline static const float h{L2_h + L3_h * 9};
+class Nvidia {
+   public:
+    inline static const float w{256};
+    inline static const float h{w + L3_h * (1 + nvml::Device::max_procs)};
 
-  private:
+   private:
     inline static const float b_w{w - L3_h * 2};
 
-    query::Nvidia<gpu_id> query;
+    nvml::Device &d;
+
     Position<float> pos;
 
     inline static const Image gpu{
         resources / "icons" / "Computer" / "004-video-card.png", green};
+    inline static const Image mem_i{
+        resources / "icons" / "Computer" / "017-processor.png", white};
     inline static const Image temp_i{
         resources / "icons" / "Nature" / "049-thermometer.png", red};
     inline static const Image power_i{
@@ -44,159 +49,196 @@ template <uint gpu_id> class Nvidia {
     inline static const Image fan_i{
         resources / "icons" / "Computer" / "054-cooler.png", blue};
 
-    BarSmooth<Color, Color, PatternLinear> util;
-    Text<false, TextAlign::center, Color> util_t;
+    ArcBar<true> util;
+    Text<true, TextAlign::left> util_t;
 
-    BarSmooth<Color, Color, PatternLinear> mem;
-    Text<false, TextAlign::center, Color> mem_t;
+    ArcBar<false> mem;
+    Text<true, TextAlign::left> mem_t;
+    Text<true, TextAlign::left> mem_t2;
 
-    Text<true, TextAlign::left> temp;
-    Text<true, TextAlign::left> power;
-    Text<true, TextAlign::left> fan;
-    array<Text<true, TextAlign::left>, query::NvidiaProcesses<gpu_id>::max>
-        procs;
+    ArcBar<false> temp;
+    Text<true, TextAlign::right> temp_t;
+    ArcBar<true> fan;
+    Text<true, TextAlign::right> fan_t;
 
-  public:
-    Nvidia(FPRWindow &w, query::Nvidia<gpu_id> &&query, Position<float> pos)
-        : query{move(query)}, pos{pos},
-          util{Bar{pos + Position<float>{L3_h * 2, L2_h},
-                   {b_w, L3_h},
-                   L3_m,
-                   L3_m,
-                   Color{grey},
-                   Color{black},
-                   PatternLinear{pos + Position<float>{L3_h * 2, L2_h},
-                                 {b_w, 0},
-                                 {{0, {green}}, {0.5, {yellow}}, {1, {red}}}}},
-               100},
-          util_t{pos + Position<float>{L3_h * 2, L2_h}, L3_area(b_w), L3_m * 3,
-                 noto_sans},
-          mem{Bar{pos + Position<float>{L3_h * 2, L2_h + L3_h},
-                  {b_w, L3_h},
-                  L3_m,
-                  L3_m,
-                  Color{grey},
-                  Color{black},
-                  PatternLinear{pos + Position<float>{L3_h * 2, L2_h + L3_h},
-                                {b_w, 0},
-                                {{0, {green}}, {0.5, {yellow}}, {1, {red}}}}},
-              100},
-          mem_t{pos + Position<float>{L3_h * 2, L2_h + L3_h}, L3_area(b_w),
-                L3_m * 3, noto_sans},
-          temp{pos + Position<float>{L3_h * 3, L2_h + L3_h * 2},
-               L3_area((Nvidia::w - L3_h * 2) / 3 - L3_h), L3_m * 2, noto_sans},
-          power{pos + Position<float>{L3_h * 3 + (Nvidia::w - L3_h * 2) / 3,
-                                      L2_h + L3_h * 2},
-                L3_area((Nvidia::w - L3_h * 2) / 3 - L3_h), L3_m * 2,
-                noto_sans},
-          fan{pos + Position<float>{L3_h * 3 + (Nvidia::w - L3_h * 2) / 3 * 2,
-                                    L2_h + L3_h * 2},
-              L3_area((Nvidia::w - L3_h * 2) / 3 - L3_h), L3_m * 2, noto_sans},
-          procs{Text<true, TextAlign::left>{
-                    pos + Position<float>{L3_h, L2_h + L3_h * 4},
-                    L3_area(Nvidia::w - L3_h), L3_m * 2, noto_sans_bold,
-                    Color{white}},
-                {pos + Position<float>{L3_h, L2_h + L3_h * 5},
-                 L3_area(Nvidia::w - L3_h), L3_m * 2, noto_sans_bold,
-                 Color{white}},
-                {pos + Position<float>{L3_h, L2_h + L3_h * 6},
-                 L3_area(Nvidia::w - L3_h), L3_m * 2, noto_sans_bold,
-                 Color{white}},
-                {pos + Position<float>{L3_h, L2_h + L3_h * 7},
-                 L3_area(Nvidia::w - L3_h), L3_m * 2, noto_sans_bold,
-                 Color{white}},
-                {pos + Position<float>{L3_h, L2_h + L3_h * 8},
-                 L3_area(Nvidia::w - L3_h), L3_m * 2, noto_sans_bold,
-                 Color{white}}}
+    Text<true, TextAlign::right> power;
 
-    {
-        Text<false, TextAlign::left>{pos + Position<float>{L2_h, 0},
-                                     L2_area(Nvidia::w), L2_m * 2,
-                                     noto_sans_bold, Color{green}}
-            .update(w, string{this->query.name});
-        w.draw_image(gpu, pos - L2_m, L2_area(L2_h) - L2_m);
-        Text<false, TextAlign::center>{pos + Position<float>{L3_h, L2_h},
-                                       L3_area(L3_h), L3_m * 2, noto_sans_bold,
-                                       Color{white}}
-            .update(w, "U");
-        Text<false, TextAlign::center>{pos + Position<float>{L3_h, L2_h + L3_h},
-                                       L3_area(L3_h), L3_m * 2, noto_sans_bold,
-                                       Color{white}}
-            .update(w, "M");
-        auto last_pos{pos + Position<float>{L3_h, L2_h + L3_h * 2}};
-        w.draw_image(temp_i, last_pos + Position<float>{L3_h, 0} - L3_m,
-                     L3_area(L3_h) - L3_m);
-        w.draw_image(power_i,
-                     last_pos +
-                         Position<float>{L3_h + (Nvidia::w - L3_h * 2) / 3, 0} -
-                         L3_m,
-                     L3_area(L3_h) - L3_m);
-        w.draw_image(
-            fan_i,
-            last_pos +
-                Position<float>{L3_h + (Nvidia::w - L3_h * 2) / 3 * 2, 0} -
-                L3_m,
-            L3_area(L3_h) - L3_m);
+    array<Text<true, TextAlign::left>, nvml::Device::max_procs> procs;
+    inline static const size_t max_name_len{16};
 
-        /// Processes
-        ostringstream oss;
-        oss << setfill(' ') << setw(5) << right << "PID";
-        oss << " ";
-        oss << setfill(' ') << setw(4) << right << "Type";
-        oss << " ";
-        oss << setfill(' ')
-            << setw(query::NvidiaProcesses<gpu_id>::max_name_len) << left
-            << "Name";
-        oss << " ";
-        oss << setfill(' ') << setw(9) << right << "Memory";
-        Text<false, TextAlign::left>{
-            pos + Position<float>{L3_h, L2_h + L3_h * 3},
-            L3_area(Nvidia::w - L3_h), L3_m * 2, noto_sans_bold, Color{white}}
-            .update(w, oss.str());
+    /// If there is updated data since the last draw.
+    bool updated{false};
+    float current_power{};
+
+   public:
+    Nvidia(FPRWindow &win, nvml::Device &d, Position<float> pos)
+        : d{d}, pos{pos} {
+        {
+            Text<false, TextAlign::center> t;
+            t.move_to(pos + Position<float>{0, w / 2 - L2_h / 2}, L2_area(w),
+                      L2_m);
+            t.set_font(noto_sans_bold, green, black);
+            t.update(win, d.name.substr(8, 10));
+        }
+        const auto center{pos + Position<float>{w / 2, w / 2}};
+        const auto quarter{w / 4 + 10};
+        {
+            Text<true, TextAlign::left> l;
+            const auto area{L2_area(quarter)};
+            l.set_font(noto_sans, white, black);
+            l.move_to(center + Position<float>{-quarter, -quarter}, area, L3_m);
+            util_t = l;
+
+            l.move_to((center + Position<float>{-quarter, quarter}).bl(area),
+                      area, L3_m);
+            mem_t = l;
+
+            Text<true, TextAlign::right> r;
+            r.set_font(noto_sans, white, black);
+            r.move_to((center + Position<float>{quarter, -quarter}).tr(area),
+                      area, L3_m);
+            temp_t = r;
+            r.move_to((center + Position<float>{quarter, quarter}).br(area),
+                      area, L3_m);
+            fan_t = r;
+        }
+        {
+            Text<true, TextAlign::left> t;
+            const auto area{L3_area(100)};
+            t.set_font(noto_sans, white, black);
+            t.move_to(
+                (center + Position<float>{-quarter, quarter - L2_h}).bl(area),
+                area, L3_m);
+            mem_t2 = t;
+        }
+        {
+            Text<true, TextAlign::right> t;
+            const auto area{L3_area(100)};
+            t.set_font(noto_sans, white, black);
+
+            t.move_to(
+                (center + Position<float>{quarter, -quarter + L2_h}).tr(area),
+                area, L3_m);
+            power = t;
+        }
+        Size<float> icon{Size<float>{36, 36}};
+
+        win.draw_image(gpu, pos, icon.pad(L2_m));
+        win.draw_image(mem_i, (pos + Position<float>{0, w}).bl(icon),
+                       icon.pad(L2_m));
+        win.draw_image(fan_i, (pos + Position<float>{w, w}).br(icon),
+                       icon.pad(L2_m));
+        win.draw_image(temp_i, (pos + Position<float>{w, 0}).tr(icon),
+                       icon.pad(L2_m));
+
+        util.center = center;
+        util.radious = w / 2;
+        util.start = 3.14 * 1;
+        util.end = 3.14 * 1.5;
+        util.border_width = 3;
+        util.bar_width = 20;
+        util.bg = black;
+        util.fg = green;
+        util.border = grey;
+
+        mem = util;
+        mem.start = 3.14 * 1;
+        mem.end = 3.14 * 0.5;
+
+        temp = util;
+        temp.start = 3.14 * 0;
+        temp.end = 3.14 * -0.5;
+
+        fan = util;
+        fan.start = 3.14 * 0;
+        fan.end = 3.14 * 0.5;
+
+        // Processes
+        {
+            Text<true, TextAlign::left> t;
+
+            ostringstream oss;
+            oss << setfill(' ') << setw(5) << right << "PID";
+            oss << "|";
+            oss << setfill(' ') << setw(1) << right << "T";
+            oss << "|";
+            oss << setfill(' ') << setw(max_name_len) << left << "Name";
+            oss << "|";
+            oss << setfill(' ') << setw(5) << right << "MB";
+
+            t.set_font(noto_sans_bold, Color{white});
+            t.move_to(pos + Position<float>{0, w}, L3_area(w), L3_m);
+            t.update(win, oss.str());
+
+            t.set_font(noto_sans, Color{white});
+            for (auto i :
+                 ranges::iota_view{0, static_cast<int>(procs.size())}) {
+                t.move_to(pos + Position<float>{0, w + L3_h * (float)(i + 1)},
+                          L3_area(w), L3_m);
+                procs[i] = t;
+            }
+        }
     }
 
     void update_data() {
-        query.update();
-        util.update_target(query.utilization);
-        mem.update_target(query.memory);
+        d.update();
+        util.target = (float)d.utilization / 100;
+        mem.target = (float)d.memory / 100;
+        temp.target = (float)d.temp / 100;
+        fan.target = (float)d.fan / 100;
+        current_power = d.power;
+
+        updated = true;
     };
 
     void draw(FPRWindow &w) {
-        util.update(w);
-        util_t.update(w, to_string(util.current, 0) + "% (" +
-                             std::to_string(query.clock_gpu) + " MHz)");
-        mem.update(w);
-        mem_t.update(w,
-                     to_string(mem.current, 0) + "% (" +
-                         to_string(query.memory_total * mem.current / 100, 2) +
-                         "/" + to_string(query.memory_total, 2) + " GiB, " +
-                         std::to_string(query.clock_mem) + " MHz)");
-        "(Fan: " + std::to_string(query.fan) + "%)";
+        util.draw(w);
+        mem.draw(w);
+        temp.draw(w);
+        fan.draw(w);
+        current_power += (d.power - current_power) / 80;
 
-        temp.update(w, " " + std::to_string(query.temp) + " ℃");
-        power.update(w, " " + to_string(query.power, 1) + " W");
-        fan.update(w, " " + std::to_string(query.fan) + " %");
+        util_t.update(w, to_string(util.current * 100, 0) + "%");
+        mem_t2.update(
+            w, to_string((float)mem.current * d.memory_total / 100, 3) + "/" +
+                   to_string(d.memory_total, 0) + "GB");
 
-        for (auto i{0}; i < query::NvidiaProcesses<gpu_id>::max; i++) {
-            const auto &p{query.procs.processes[i]};
-            if (!p.is_valid()) {
-                continue;
+        mem_t.update(w, to_string(mem.current * 100, 0) + "%");
+        temp_t.update(w, to_string(temp.current * 100, 0) + "℃");
+        fan_t.update(w, to_string(fan.current * 100, 0) + "%");
+        power.update(w, to_string(current_power, 2) + "W");
+
+        if (updated) {
+            for (auto i{0U}; i < procs.size(); i++) {
+                const auto s{[&]() -> string {
+                    if (i < d.procs.size()) {
+                        const auto &p{d.procs.at(i)};
+
+                        ostringstream oss;
+                        oss << setfill(' ') << setw(5) << right << p.t.pid;
+                        oss << " ";
+                        oss << setfill(' ') << setw(1) << right << "G";
+                        oss << " ";
+                        oss << setfill(' ') << setw(max_name_len) << left
+                            << [&]() {
+                                   if (p.name.size() < max_name_len) {
+                                       return p.name;
+                                   }
+                                   return p.name.substr(0, max_name_len - 3) +
+                                          "...";
+                               }();
+                        oss << " ";
+                        oss << setfill(' ') << setw(5) << right
+                            << to_string((float)p.t.usedGpuMemory * 1e-6, 0);
+                        return oss.str();
+                    }
+                    return "";
+                }()};
+                procs[i].update(w, s);
             }
-            ostringstream oss;
-            oss << setfill(' ') << setw(5) << right << p.id;
-            oss << " ";
-            oss << setfill(' ') << setw(4) << right << p.type;
-            oss << " ";
-            oss << setfill(' ')
-                << setw(query::NvidiaProcesses<gpu_id>::max_name_len) << left
-                << string{p.name.data()};
-            oss << " ";
-            oss << setfill(' ') << setw(9) << right
-                << (std::to_string(p.memory) + " MiB");
-            auto &t{procs[i]};
-            t.update(w, oss.str());
+            updated = false;
         }
     }
 };
-} // namespace widget
-} // namespace fprd
+}  // namespace widget
+}  // namespace fprd
