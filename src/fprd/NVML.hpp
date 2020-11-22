@@ -112,14 +112,15 @@ class Device {
                     unsigned int c{i.size()};
                     check(nvmlDeviceGetGraphicsRunningProcesses_v2(t, &c,
                                                                    i.data()));
+
+                    sort(i.begin(), i.begin() + c, [](auto &l, auto &r) {
+                        return l.usedGpuMemory > r.usedGpuMemory;
+                    });
                     if (c > max_procs) {
                         return {i.begin(), i.begin() + 5};
                     }
                     return {i.begin(), i.begin() + c};
                 }()};
-                sort(procs.begin(), procs.end(), [](auto &l, auto &r) {
-                    return l.usedGpuMemory > r.usedGpuMemory;
-                });
                 return procs;
             }()};
             vector<Process> ps;
