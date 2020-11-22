@@ -10,6 +10,7 @@
 
 #include <cairo/cairo-xlib.h>
 #include <cairo/cairo.h>
+
 #include <fprd/Color.hpp>
 #include <fprd/Font.hpp>
 #include <fprd/Image.hpp>
@@ -30,12 +31,18 @@ class FPRWindow {
     const X11 &x11;
     /// The X11 window we create.
     const Window w;
-    /// The surface which we are drawing to.
-    cairo_surface_t *const surface;
-    /// Context used for draw calls.
-    cairo_t *const c;
 
-  public:
+    /// The surface which we are drawing to.
+    cairo_surface_t *const buf_s;
+    /// Context used for draw calls.
+    cairo_t *const buf;
+
+    /// The surface which we are drawing to.
+    cairo_surface_t *const win_s;
+    /// Context used for draw calls.
+    cairo_t *const win;
+
+   public:
     /// Create a new window.
     /// @param x11
     /// @param pos
@@ -46,66 +53,89 @@ class FPRWindow {
     /// Change the current source to a color.
     /// @param color
     void set_source(Color color) {
-        cairo_set_source_rgba(c, color.r, color.g, color.b, color.a);
+        cairo_set_source_rgba(buf, color.r, color.g, color.b, color.a);
     }
     /// Set the current source to a pattern.
     /// @param p
-    void set_source(const Pattern &p) { cairo_set_source(c, p); }
+    void set_source(const Pattern &p) { cairo_set_source(buf, p); }
     /// Set the current source to an Image.
     void set_source(const Image &i, Position<float> pos) {
-        cairo_set_source_surface(c, i, pos.x, pos.y);
+        cairo_set_source_surface(buf, i, pos.x, pos.y);
     };
 
     void draw_image(const Image &i, Position<float> pos, Size<float> size) {
-        cairo_save(c);
-        cairo_translate(c, pos.x, pos.y);
-        cairo_scale(c, (double)size.w / i.w, (double)size.h / i.h);
-        cairo_set_source_surface(c, i, 0, 0);
+        cairo_save(buf);
+        cairo_translate(buf, pos.x, pos.y);
+        cairo_scale(buf, (double)size.w / i.w, (double)size.h / i.h);
+        cairo_set_source_surface(buf, i, 0, 0);
         clear();
-        cairo_restore(c);
+        cairo_restore(buf);
     }
 
     /// Stroke along the current path.
-    void stroke() { cairo_stroke(c); }
+    void stroke() { cairo_stroke(buf); }
     /// Fill the current shape.
-    void fill() { cairo_fill(c); }
+    void fill() { cairo_fill(buf); }
     /// Paint the entire surface with the current color.
-    void clear() { cairo_paint(c); }
+    void clear() { cairo_paint(buf); }
 
     /// Draw a rectangle.
     /// @param pos
     /// @param size
     void rectangle(Position<float> pos, Size<float> size) {
-        cairo_rectangle(c, pos.x, pos.y, size.w, size.h);
+        cairo_rectangle(buf, pos.x, pos.y, size.w, size.h);
     }
 
     /// Move the drawing cursor to a position.
     /// @param pos
-    void move_to(Position<float> pos) { cairo_move_to(c, pos.x, pos.y); }
+    void move_to(Position<float> pos) { cairo_move_to(buf, pos.x, pos.y); }
 
     /// Change the drawing line width.
     /// @param width
-    void set_line_width(double width) { cairo_set_line_width(c, width); }
+    void set_line_width(double width) { cairo_set_line_width(buf, width); }
     /// Draw a line to pos from the current cursor position.
     /// @param pos
-    void line_to(Position<float> pos) { cairo_line_to(c, pos.x, pos.y); }
+    void line_to(Position<float> pos) { cairo_line_to(buf, pos.x, pos.y); }
+    /// Try to close the current path.
+    void close_path() { cairo_close_path(buf); };
+    /// Create an arc line clock-wise.
+    /// @param center
+    /// @param radious
+    /// @param start Start angle in radians.
+    /// @param end  End angle in radians.
+    void arc(Position<float> center, float radious, float start, float end) {
+        cairo_arc(buf, center.x, center.y, radious, start, end);
+    }
+    /// Create an arc line counter clock-wise.
+    /// @param center
+    /// @param radious
+    /// @param start Start angle in radians.
+    /// @param end  End angle in radians.
+    void rarc(Position<float> center, float radious, float start, float end) {
+        cairo_arc_negative(buf, center.x, center.y, radious, start, end);
+    }
+
+    void reset() {
+        set_source({0, 0, 0, 0});
+        stroke();
+    }
 
     /// Set the font to a certain one.
     /// @param font
-    void set_font(const Font &font) { cairo_set_font_face(c, font); }
+    void set_font(const Font &font) { cairo_set_font_face(buf, font); }
     /// Set the font size.
     /// @param size
-    void set_font_size(double size) { cairo_set_font_size(c, size); };
+    void set_font_size(double size) { cairo_set_font_size(buf, size); };
     /// Print text on the screen.
     /// @param s
-    void print_text(string &&s) { cairo_show_text(c, s.c_str()); }
+    void print_text(string &&s) { cairo_show_text(buf, s.c_str()); }
 
     /// Obtain the font extent.
     /// @param font
     /// @return auto
     auto get_font_extent(const Font &font) {
         cairo_font_extents_t e;
-        cairo_font_extents(c, &e);
+        cairo_font_extents(buf, &e);
         return e;
     }
     /// Obtain the text extent.
@@ -113,27 +143,35 @@ class FPRWindow {
     /// @return auto
     auto get_text_extent(const string &s) {
         cairo_text_extents_t e;
-        cairo_text_extents(c, s.c_str(), &e);
+        cairo_text_extents(buf, s.c_str(), &e);
         return e;
     }
 
     /// Flush the draw commands.
     void flush() {
-        cairo_surface_flush(surface);
+        cairo_surface_flush(buf_s);
+        cairo_set_source_rgba(win, 0, 0, 0, 1);
+        cairo_paint(win);
+        cairo_set_source_surface(win, buf_s, 0, 0);
+        cairo_paint(win);
+        cairo_surface_flush(win_s);
         x11.flush();
     }
 
     /// Cleanup after our selves.
     ~FPRWindow() {
-        cairo_destroy(c);
-        cairo_surface_destroy(surface);
+        cairo_destroy(buf);
+        cairo_surface_destroy(buf_s);
+        cairo_destroy(win);
+        cairo_surface_destroy(win_s);
         x11.destroy_window(w);
     }
 
-  private:
+   private:
     FPRWindow(const X11 &x11, int screen, Position<int> pos,
               Size<unsigned int> size)
-        : x11{x11}, w{[&x11, screen, pos, size]() {
+        : x11{x11},
+          w{[&x11, screen, pos, size]() {
               const auto root{x11.root_window(screen)};
               const auto w{[&x11, root, size]() {
                   XSetWindowAttributes attr{
@@ -171,8 +209,11 @@ class FPRWindow {
               x11.move_window(w, pos);
               return w;
           }()},
-          surface{cairo_xlib_surface_create(
+          buf_s{
+              cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.w, size.h)},
+          buf{cairo_create(buf_s)},
+          win_s{cairo_xlib_surface_create(
               x11.display(), w, x11.default_visual(screen), size.w, size.h)},
-          c{cairo_create(surface)} {}
+          win{cairo_create(win_s)} {}
 };
-}; // namespace fprd
+};  // namespace fprd
