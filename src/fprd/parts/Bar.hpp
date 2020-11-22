@@ -26,10 +26,13 @@ struct Bar {
     Bar(Position<float> pos, Size<float> area, Margin<float> to_bar,
         Margin<float> to_internal_bar, Frame &&frame = {}, Empty &&empty = {},
         Filled &&filled = {})
-        : bar{pos - to_bar}, s_bar{area - to_bar},
-          bar_internal{bar - to_internal_bar}, s_bar_internal{s_bar -
-                                                              to_internal_bar},
-          frame{move(frame)}, empty{move(empty)}, filled{move(filled)} {}
+        : bar{pos - to_bar},
+          s_bar{area - to_bar},
+          bar_internal{bar - to_internal_bar},
+          s_bar_internal{s_bar - to_internal_bar},
+          frame{move(frame)},
+          empty{move(empty)},
+          filled{move(filled)} {}
 
     void update(FPRWindow &w, double percent) const {
         w.rectangle(bar, s_bar);
@@ -46,10 +49,10 @@ struct Bar {
 
 template <Source Frame = Color, Source Empty = Color, Source Filled = Color>
 struct BarSmooth : protected Bar<Frame, Empty, Filled> {
-  private:
+   private:
     using Base = Bar<Frame, Empty, Filled>;
 
-  public:
+   public:
     /// The currently displayed percentage.
     float current{};
     /// The targeted percentage.
@@ -66,4 +69,4 @@ struct BarSmooth : protected Bar<Frame, Empty, Filled> {
         Base::update(w, current);
     };
 };
-}; // namespace fprd
+};  // namespace fprd
