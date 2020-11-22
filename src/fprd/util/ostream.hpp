@@ -28,7 +28,8 @@ constexpr string_view nl{"\n"};
 
 /// Prinable types have a print function for types defined in SWORD.
 /// @tparam T
-template <class T> concept Printable = requires(const T &t, ostream &os) {
+template <class T>
+concept Printable = requires(const T &t, ostream &os) {
     { t.print(os) }
     ->same_as<ostream &>;
 };
@@ -38,7 +39,8 @@ template <class T> concept Printable = requires(const T &t, ostream &os) {
 /// @param os
 /// @param p
 /// @return ostream&
-template <Printable P> ostream &operator<<(ostream &os, const P &p) {
+template <Printable P>
+ostream &operator<<(ostream &os, const P &p) {
     return p.print(os);
 };
 
@@ -93,4 +95,4 @@ ostream &operator<<(ostream &os, const source_location loc) {
 //     os << "}";
 //     return os;
 // }
-}; // namespace fprd
+};  // namespace fprd

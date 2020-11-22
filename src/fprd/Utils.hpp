@@ -13,10 +13,12 @@
 namespace fprd {
 using namespace std;
 
-template <class I> concept Number = is_integral_v<I> || is_floating_point_v<I>;
+template <class I>
+concept Number = is_integral_v<I> || is_floating_point_v<I>;
 
 /// For readability.
-template <Number I = double> struct Margin {
+template <Number I = double>
+struct Margin {
     I x;
     I y;
 
@@ -25,11 +27,12 @@ template <Number I = double> struct Margin {
 };
 
 /// For readability.
-template <Number I = double> struct Size {
+template <Number I = double>
+struct Size {
     I w;
     I h;
 
-    Size operator-(Margin<I> m) const { return {w - m.x * 2, h - m.y * 2}; };
+    Size pad(Margin<I> m) const { return {w - m.x * 2, h - m.y * 2}; };
 
     [[nodiscard]] Size scale(pair<double, double> scale) const {
         return {w * scale.first, h * scale.second};
@@ -39,11 +42,12 @@ template <Number I = double> struct Size {
 };
 
 /// For readability.
-template <Number I = double> struct Position {
+template <Number I = double>
+struct Position {
     I x;
     I y;
 
-    Position operator-(Margin<I> m) const { return {x + m.x, y + m.y}; }
+    Position pad(Margin<I> m) const { return {x + m.x, y + m.y}; }
     Position operator+(Position p) const { return {x + p.x, y + p.y}; }
 };
-}; // namespace fprd
+};  // namespace fprd

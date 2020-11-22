@@ -17,10 +17,11 @@ using namespace std;
 /// A virtual buffer used to insert a callback function with each '\n'
 /// character.
 /// @tparam Callback
-template <class Callback> class LineCallbackBuf : public streambuf {
+template <class Callback>
+class LineCallbackBuf : public streambuf {
     using Base = streambuf;
 
-  protected:
+   protected:
     /// The real buffer, we will send all the output here after checking them
     Base *const destination;
     /// The newline callback
@@ -28,7 +29,7 @@ template <class Callback> class LineCallbackBuf : public streambuf {
     /// Set to true when the next character is the first in a line.
     bool is_newline{true};
 
-  public:
+   public:
     /// @param dest Final Destination of the output
     /// @param callback Use this to pass dynamically allocated CallBack
     /// functions.
@@ -60,11 +61,12 @@ template <class Callback> class LineCallbackBuf : public streambuf {
 /// Helper class for 'LineCallbackBuf'.
 /// Combines multiple callback classes to one.
 /// @tparam Callbacks
-template <class... Callbacks> class CombinedCallback {
+template <class... Callbacks>
+class CombinedCallback {
     /// Tuple of callback classes.
     tuple<Callbacks &...> callbacks;
 
-  public:
+   public:
     /// Use this to initialize the callback classes with arguments.
     /// @param callbacks
     CombinedCallback(Callbacks &...callbacks) : callbacks(callbacks...) {}
@@ -98,7 +100,7 @@ class Indent {
     /// String for the current indent.
     string indent;
 
-  public:
+   public:
     /// Increase indent by one.
     inline void inc() { indent += one_indent; }
     /// Decrease indent by one.
@@ -142,4 +144,4 @@ struct IndentGuard {
     /// Movable
     IndentGuard(IndentGuard &&) = default;
 };
-}; // namespace dbg
+};  // namespace dbg

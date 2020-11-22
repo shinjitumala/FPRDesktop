@@ -9,6 +9,7 @@
 #pragma once
 
 #include <cairo/cairo.h>
+
 #include <fprd/Color.hpp>
 #include <fprd/Utils.hpp>
 #include <utility>
@@ -22,10 +23,10 @@ class FPRWindow;
 class Pattern {
     friend FPRWindow;
 
-  protected:
+   protected:
     cairo_pattern_t *p;
 
-  public:
+   public:
     Pattern() : p{nullptr} {};
 
     /// Initialize the pattern.
@@ -41,7 +42,7 @@ class Pattern {
     /// Cleanup patterns in the end.
     ~Pattern() { destroy(); }
 
-  protected:
+   protected:
     operator decltype(p)() const { return p; };
 
     void destroy() {
@@ -64,4 +65,4 @@ struct PatternLinear : public Pattern {
         }
     }
 };
-} // namespace fprd
+}  // namespace fprd

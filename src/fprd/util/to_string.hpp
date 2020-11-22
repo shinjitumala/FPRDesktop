@@ -26,4 +26,4 @@ auto to_string(Float f, u_char precision) requires is_floating_point_v<Float> {
     oss << setprecision(precision) << fixed << f;
     return oss.str();
 }
-}; // namespace fprd
+};  // namespace fprd

@@ -11,6 +11,7 @@
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+
 #include <dbg/Log.hpp>
 #include <experimental/source_location>
 #include <fprd/Utils.hpp>
@@ -21,12 +22,13 @@ using namespace std;
 
 /// 'XFree()' is called on the span upon distruction.
 /// @tparam V
-template <class V> struct FreedSpan : public span<V> {
-  private:
+template <class V>
+struct FreedSpan : public span<V> {
+   private:
     /// Convenient alias.
     using Base = span<V>;
 
-  public:
+   public:
     /// Use the base constructors.
     using Base::Base;
 
@@ -52,7 +54,7 @@ class X11 {
     /// The real type.
     Display *d;
 
-  public:
+   public:
     /// Open a connection to the X11 server.
     /// @param display
     X11(string &&display) : d{XOpenDisplay(display.c_str())} {
@@ -145,11 +147,11 @@ class X11 {
     auto flush() const { XFlush(d); }
 
     auto destroy_window(Window w) const { XDestroyWindow(d, w); };
-    [[nodiscard]] auto
-    create_window(Window parent, Position<int> pos, Size<unsigned int> size,
-                  unsigned int border_w, int depth, unsigned int window_class,
-                  Visual *visual, unsigned long value_mask,
-                  const XSetWindowAttributes &attributes) const {
+    [[nodiscard]] auto create_window(
+        Window parent, Position<int> pos, Size<unsigned int> size,
+        unsigned int border_w, int depth, unsigned int window_class,
+        Visual *visual, unsigned long value_mask,
+        const XSetWindowAttributes &attributes) const {
         return XCreateWindow(d, parent, pos.x, pos.y, size.w, size.h, border_w,
                              depth, window_class, visual, value_mask,
                              const_cast<XSetWindowAttributes *>(&attributes));
@@ -224,4 +226,4 @@ ostream &operator<<(ostream &os, const XWindowAttributes &attr) {
     return os;
 }
 
-}; // namespace fprd
+};  // namespace fprd

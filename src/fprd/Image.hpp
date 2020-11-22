@@ -9,6 +9,7 @@
 #pragma once
 
 #include <cairo/cairo.h>
+
 #include <dbg/Log.hpp>
 #include <filesystem>
 #include <fprd/Color.hpp>
@@ -24,7 +25,7 @@ class Image {
 
     cairo_surface_t *i;
 
-  public:
+   public:
     int w;
     int h;
 
@@ -35,8 +36,8 @@ class Image {
               }
               return cairo_image_surface_create_from_png(path.c_str());
           }()},
-          w{cairo_image_surface_get_width(i)}, h{cairo_image_surface_get_height(
-                                                   i)} {}
+          w{cairo_image_surface_get_width(i)},
+          h{cairo_image_surface_get_height(i)} {}
     Image(path &&path, Color mask) : Image{move(path)} {
         auto *const c{cairo_create(i)};
         cairo_set_operator(c, CAIRO_OPERATOR_ATOP);
@@ -47,7 +48,7 @@ class Image {
 
     ~Image() { cairo_surface_destroy(i); }
 
-  private:
+   private:
     operator decltype(i)() const { return i; };
 };
-}; // namespace fprd
+};  // namespace fprd

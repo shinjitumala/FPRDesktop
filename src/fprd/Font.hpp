@@ -9,6 +9,7 @@
 #pragma once
 
 #include <cairo/cairo.h>
+
 #include <string>
 
 namespace fprd {
@@ -20,7 +21,7 @@ class Font {
 
     cairo_font_face_t *f;
 
-  public:
+   public:
     Font() : f{nullptr} {};
 
     Font(string &&family, cairo_font_slant_t s, cairo_font_weight_t w)
@@ -36,7 +37,7 @@ class Font {
     };
     Font(Font &&f) noexcept : Font() { *this = move(f); };
 
-  private:
+   private:
     operator decltype(f)() const { return f; };
 
     void destroy() {
@@ -45,4 +46,4 @@ class Font {
         }
     }
 };
-}; // namespace fprd
+};  // namespace fprd

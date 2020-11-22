@@ -12,16 +12,44 @@
 #include <cstdlib>
 #include <dbg/Log.hpp>
 #include <fprd/util/fdstreambuf.hpp>
+#include <fstream>
 #include <istream>
 #include <string>
 
 namespace fprd {
 using namespace std;
 
+string get_name(unsigned int pid) {
+    using namespace std::filesystem;
+    const path file{"/proc/" + to_string(pid) + "/cmdline"};
+    if (!exists(file)) {
+        return "<E: Missing file>";
+    }
+    ifstream ifs{file};
+    const auto [s, cmd]{[&ifs]() {
+        string s;
+        bool i{getline(ifs, s)};
+        return make_pair(i, s);
+    }()};
+    if (!s) {
+        return "<E: Read failure>";
+    }
+    auto i_space{cmd.find(' ')};
+    if (i_space == string::npos) {
+        auto i_fs{cmd.rfind('/', i_space)};
+        if (i_fs == string::npos) {
+            return cmd;
+        }
+        return cmd.substr(i_fs + 1, cmd.size() - i_fs - 1);
+    }
+    auto i_fs{cmd.rfind('/', i_space)};
+    return cmd.substr(i_fs + 1, i_space - i_fs);
+}
+
 class Executor : protected fdstreambuf, protected istream {
     FILE *f;
 
-  public:
+   public:
     Executor(string_view command)
         : Executor{command, ::popen(command.data(), "r")} {}
 
@@ -29,7 +57,7 @@ class Executor : protected fdstreambuf, protected istream {
 
     using istream::operator bool;
 
-  protected:
+   protected:
     auto get_line() -> string {
         if (istream::operator bool() == false) {
             return "";
@@ -39,16 +67,17 @@ class Executor : protected fdstreambuf, protected istream {
         return s;
     }
 
-  private:
+   private:
     Executor(string_view command, FILE *f)
-        : fdstreambuf{::fileno(f)}, istream{static_cast<fdstreambuf *>(this)},
+        : fdstreambuf{::fileno(f)},
+          istream{static_cast<fdstreambuf *>(this)},
           f{f} {}
 };
 
 class ExecutorLine : public Executor {
     int current_line;
 
-  public:
+   public:
     ExecutorLine(string_view command) : Executor(command), current_line{0} {}
 
     /// @param line_num Line number starts from 1.
@@ -62,7 +91,7 @@ class ExecutorLine : public Executor {
         return Executor::get_line();
     }
 
-  private:
+   private:
     void skip_lines(uint lines) {
         current_line += lines;
         for (auto i{0U}; i < lines; i++) {
@@ -76,7 +105,7 @@ class ExecutorLine : public Executor {
 };
 
 class ExecutorCSV : public Executor, public vector<string> {
-  public:
+   public:
     ExecutorCSV(string_view command) : Executor(command) {
         const auto str{get_line()};
 
@@ -92,4 +121,4 @@ class ExecutorCSV : public Executor, public vector<string> {
         }
     }
 };
-}; // namespace fprd
+};  // namespace fprd

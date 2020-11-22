@@ -11,4 +11,4 @@
 namespace fprd {
 using namespace std;
 namespace widget {};
-}; // namespace fprd
+};  // namespace fprd

@@ -58,8 +58,8 @@ struct Color {
         return os;
     }
 
-  private:
+   private:
     Color(tuple<double, double, double> rgb, double a)
         : r{get<0>(rgb)}, g{get<1>(rgb)}, b{get<2>(rgb)}, a{a} {}
 };
-}; // namespace fprd
+};  // namespace fprd

@@ -40,5 +40,5 @@ Size<float> L1_area(float w) { return {w, L1_h}; };
 Size<float> L2_area(float w) { return {w, L2_h}; };
 Size<float> L3_area(float w) { return {w, L3_h}; };
 
-}; // namespace theme
-}; // namespace fprd
+};  // namespace theme
+};  // namespace fprd

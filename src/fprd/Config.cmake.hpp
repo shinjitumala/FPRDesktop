@@ -13,4 +13,4 @@
 namespace fprd {
 using namespace ::std::filesystem;
 static inline const path resources{"@CMAKE_CURRENT_SOURCE_DIR@/res"};
-} // namespace fprd
+}  // namespace fprd

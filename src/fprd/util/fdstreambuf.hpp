@@ -8,9 +8,10 @@
 
 #pragma once
 
+#include <unistd.h>
+
 #include <array>
 #include <streambuf>
-#include <unistd.h>
 
 namespace fprd {
 using namespace std;
@@ -27,11 +28,11 @@ class fdstreambuf : public streambuf {
     /// Input buffer
     array<char, bufsize + 16 - sizeof(int)> input_buf;
 
-  protected:
+   protected:
     /// Filedescriptor this is mapped to.
     int file_descriptor;
 
-  public:
+   public:
     /// @param file_descriptor The file_descriptor this will be representing.
     /// WARNING: fdstreambuf will not take ownership of the 'file_descriptor'.
     /// You still need to close it manually.
@@ -40,7 +41,7 @@ class fdstreambuf : public streambuf {
         setp(output_buf.data(), output_buf.data() + bufsize - 1);
     };
 
-  protected:
+   protected:
     int overflow(int c) override {
         if (!traits_type::eq_int_type(c, traits_type::eof())) {
             *pptr() = traits_type::to_char_type(c);
@@ -86,4 +87,4 @@ class fdstreambuf : public streambuf {
         return 0;
     };
 };
-}; // namespace fprd
+};  // namespace fprd
