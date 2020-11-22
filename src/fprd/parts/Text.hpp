@@ -35,7 +35,7 @@ class Text {
         this->pos = pos;
         this->area = area;
         size = (area.pad(m)).h;
-        this->text_pos = [=]() {
+        this->text_pos = [pos, m, size = size]() {
             auto p{pos.pad(m)};
             p.y += size;
             return p;
