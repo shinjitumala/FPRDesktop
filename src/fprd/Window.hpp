@@ -36,6 +36,10 @@ class FPRWindow {
     cairo_surface_t *const buf_s;
     /// Context used for draw calls.
     cairo_t *const buf;
+    /// The surface which we are drawing to.
+    cairo_surface_t *const buf2_s;
+    /// Context used for draw calls.
+    cairo_t *const buf2;
 
     /// The surface which we are drawing to.
     cairo_surface_t *const win_s;
@@ -150,11 +154,15 @@ class FPRWindow {
     /// Flush the draw commands.
     void flush() {
         cairo_surface_flush(buf_s);
-        cairo_set_source_rgba(win, 0, 0, 0, 1);
+
+        cairo_set_source_rgba(buf2, 0, 0, 0, 1);
+        cairo_paint(buf2);
+        cairo_set_source_surface(buf2, buf_s, 0, 0);
+        cairo_paint(buf2);
+        cairo_surface_flush(buf2_s);
+
+        cairo_set_source_surface(win, buf2_s, 0, 0);
         cairo_paint(win);
-        cairo_set_source_surface(win, buf_s, 0, 0);
-        cairo_paint(win);
-        cairo_surface_flush(win_s);
         x11.flush();
     }
 
@@ -162,6 +170,8 @@ class FPRWindow {
     ~FPRWindow() {
         cairo_destroy(buf);
         cairo_surface_destroy(buf_s);
+        cairo_destroy(buf2);
+        cairo_surface_destroy(buf2_s);
         cairo_destroy(win);
         cairo_surface_destroy(win_s);
         x11.destroy_window(w);
@@ -212,6 +222,10 @@ class FPRWindow {
           buf_s{
               cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.w, size.h)},
           buf{cairo_create(buf_s)},
+
+          buf2_s{
+              cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.w, size.h)},
+          buf2{cairo_create(buf2_s)},
           win_s{cairo_xlib_surface_create(
               x11.display(), w, x11.default_visual(screen), size.w, size.h)},
           win{cairo_create(win_s)} {}

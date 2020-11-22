@@ -49,5 +49,6 @@ struct Position {
 
     Position pad(Margin<I> m) const { return {x + m.x, y + m.y}; }
     Position operator+(Position p) const { return {x + p.x, y + p.y}; }
+    Position bl(Size<I> sss)
 };
 };  // namespace fprd
