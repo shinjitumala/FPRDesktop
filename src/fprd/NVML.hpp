@@ -49,8 +49,8 @@ class Device {
     nvmlDevice_t t;
 
    public:
-    const string name;          // Product name
-    const ushort memory_total;  // GB
+    const string name;         // Product name
+    const float memory_total;  // GB
 
     u_char utilization;  // %
     u_char memory;       // %
@@ -71,10 +71,10 @@ class Device {
               nvmlDeviceGetName(t, buf.data(), buf.size());
               return buf.data();
           }()},
-          memory_total{[t]() -> ushort {
+          memory_total{[t]() -> float {
               nvmlMemory_t m;
               check(nvmlDeviceGetMemoryInfo(t, &m));
-              return static_cast<ushort>((double)m.total * 1e-9);
+              return static_cast<float>((float)m.total * 1e-9);
           }()} {};
 
    public:
