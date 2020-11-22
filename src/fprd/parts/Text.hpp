@@ -66,7 +66,7 @@ class Text {
             if constexpr (vertical == TextAlign::center) {
                 pos.x = pos.x + area.w / 2 - te.width / 2;
             } else if constexpr (vertical == TextAlign::right) {
-                pos.x = pos.x + area.w - (text_pos.x - pos.x) - te.width;
+                pos.x = pos.x + area.w - (text_pos.x - pos.x + 3) - te.width;
             }
             w.move_to(pos);
         }
