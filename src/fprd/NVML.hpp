@@ -52,12 +52,13 @@ class Device {
     const string name;         // Product name
     const float memory_total;  // GB
 
-    u_char utilization;  // %
-    u_char memory;       // %
-    u_char fan;          // %
-    u_char temp;         // Celsius
-    float power;         // Watts
-    short clock;         // MHz
+    u_char utilization;         // %
+    u_char memory;              // %
+    u_char utilization_memory;  // %
+    u_char fan;                 // %
+    u_char temp;                // Celsius
+    float power;                // Watts
+    short clock;                // MHz
 
     /// Sorted list of processes.
     /// INFO: Maximum of 'max_procs' items shown.
@@ -80,10 +81,15 @@ class Device {
    public:
     /// Update mutable data for this device.
     void update() {
-        tie(utilization, memory) = [this]() {
+        tie(utilization, utilization_memory) = [this]() {
             nvmlUtilization_t u;
             check(nvmlDeviceGetUtilizationRates(t, &u));
-            return pair<u_char, u_char>{u.gpu, u.memory};
+            return make_pair(u.gpu, u.memory);
+        }();
+        memory = [this]() {
+            nvmlMemory_t m;
+            check(nvmlDeviceGetMemoryInfo(t, &m));
+            return static_cast<u_char>((double)m.used / (double)m.total * 100);
         }();
         fan = [this]() {
             unsigned int s;

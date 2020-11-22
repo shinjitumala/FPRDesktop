@@ -51,6 +51,8 @@ class Nvidia {
 
     ArcBar<true> util;
     Text<true, TextAlign::left> util_t;
+    Text<true, TextAlign::left> clock;
+    ushort current_clock{};
 
     ArcBar<false> mem;
     Text<true, TextAlign::left> mem_t;
@@ -69,6 +71,7 @@ class Nvidia {
     /// If there is updated data since the last draw.
     bool updated{false};
     float current_power{};
+    float current_memory{};
 
    public:
     Nvidia(FPRWindow &win, nvml::Device &d, Position<float> pos)
@@ -110,6 +113,11 @@ class Nvidia {
                 (center + Position<float>{-quarter, quarter - L2_h}).bl(area),
                 area, L3_m);
             mem_t2 = t;
+
+            const auto area2{L3_area(quarter)};
+            t.move_to((center + Position<float>{-quarter, -quarter + L2_h}),
+                      area2, L3_m);
+            clock = t;
         }
         {
             Text<true, TextAlign::right> t;
@@ -183,10 +191,9 @@ class Nvidia {
     void update_data() {
         d.update();
         util.target = (float)d.utilization / 100;
-        mem.target = (float)d.memory / 100;
+        mem.target = (float)d.utilization_memory / 100;
         temp.target = (float)d.temp / 100;
         fan.target = (float)d.fan / 100;
-        current_power = d.power;
 
         updated = true;
     };
@@ -197,16 +204,19 @@ class Nvidia {
         temp.draw(w);
         fan.draw(w);
         current_power += (d.power - current_power) / 80;
+        current_clock += (d.clock - current_clock) / 80;
+        current_memory += ((float)d.memory - current_memory) / 80;
 
         util_t.update(w, to_string(util.current * 100, 0) + "%");
         mem_t2.update(
-            w, to_string((float)mem.current * d.memory_total / 100, 3) + "/" +
-                   to_string(d.memory_total, 0) + "GB");
+            w, to_string((float)current_memory * d.memory_total / 100, 3) +
+                   "/" + to_string(d.memory_total, 0) + "GB");
 
         mem_t.update(w, to_string(mem.current * 100, 0) + "%");
         temp_t.update(w, to_string(temp.current * 100, 0) + "℃");
         fan_t.update(w, to_string(fan.current * 100, 0) + "%");
         power.update(w, to_string(current_power, 2) + "W");
+        clock.update(w, std::to_string(current_clock) + "MHz");
 
         if (updated) {
             for (auto i{0U}; i < procs.size(); i++) {
