@@ -52,7 +52,11 @@ class FPRWindow {
     /// @param pos
     /// @param size
     FPRWindow(const X11 &x11, Position<int> pos, Size<unsigned int> size)
-        : FPRWindow{x11, x11.default_screen(), pos, size} {}
+        : FPRWindow{x11, x11.default_screen(), pos, size} {
+        /// Wait until our surface is ready.
+        for (XEvent e; XNextEvent(x11.display(), &e), e.type == MapNotify;) {
+        }
+    }
 
     /// Change the current source to a color.
     /// @param color

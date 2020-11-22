@@ -141,20 +141,28 @@ class Device {
 
 /// Auto shutting down NVML instance.
 struct NVML {
-    NVML() { check(nvmlInit_v2()); }
-    ~NVML() { check(nvmlShutdown()); }
-    NVML(const NVML &) = delete;
-
+   private:
     [[nodiscard]] auto get_device_count() const {
         unsigned int c;
         check(nvmlDeviceGetCount(&c));
         return c;
     }
 
-    [[nodiscard]] auto get_device_handle(size_t index) const {
-        nvmlDevice_t d;
-        check(nvmlDeviceGetHandleByIndex_v2(index, &d));
-        return Device(d);
+   public:
+    NVML() { check(nvmlInit_v2()); }
+    ~NVML() { check(nvmlShutdown()); }
+    NVML(const NVML &) = delete;
+
+    [[nodiscard]] auto get_devices() const {
+        const auto c{get_device_count()};
+        vector<Device> devs;
+        devs.reserve(c);
+        for (auto i{0U}; i < c; i++) {
+            nvmlDevice_t d;
+            check(nvmlDeviceGetHandleByIndex_v2(i, &d));
+            devs.push_back(Device{d});
+        }
+        return devs;
     }
 };
 
