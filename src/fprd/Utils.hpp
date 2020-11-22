@@ -24,6 +24,11 @@ struct Margin {
 
     Margin operator+(Margin m) const { return {x + m.x, y + m.y}; };
     Margin operator*(float s) const { return {x * s, y * s}; };
+
+    template <class T>
+    operator Margin<T>() requires is_convertible_v<I, T> {
+        return {x, y};
+    }
 };
 
 /// For readability.
@@ -39,6 +44,11 @@ struct Size {
     };
 
     auto operator<=>(const Size &) const = default;
+
+    template <class T>
+    operator Size<T>() requires is_convertible_v<I, T> {
+        return {w, h};
+    }
 };
 
 /// For readability.
@@ -49,6 +59,18 @@ struct Position {
 
     Position pad(Margin<I> m) const { return {x + m.x, y + m.y}; }
     Position operator+(Position p) const { return {x + p.x, y + p.y}; }
-    Position bl(Size<I> sss)
+    /// Bottom left
+    Position bl(Size<I> s) const { return {x, y - s.h}; };
+    /// Top right
+    Position tr(Size<I> s) const { return {x - s.w, y}; };
+    /// Bottom right
+    Position br(Size<I> s) const { return {x - s.w, y - s.h}; };
+    /// Horizontal center
+    Position hc(Size<I> s) const { return {x - s.w / 2, y}; };
+
+    template <class T>
+    operator Position<T>() requires is_convertible_v<I, T> {
+        return {x, y};
+    }
 };
 };  // namespace fprd
