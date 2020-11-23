@@ -21,29 +21,19 @@ using namespace std;
 
 string get_name(unsigned int pid) {
     using namespace std::filesystem;
-    const path file{"/proc/" + to_string(pid) + "/cmdline"};
+    const path file{"/proc/" + to_string(pid) + "/stat"};
     if (!exists(file)) {
         return "<E: Missing file>";
     }
     ifstream ifs{file};
-    const auto [s, cmd]{[&ifs]() {
-        string s;
-        bool i{getline(ifs, s)};
-        return make_pair(i, s);
-    }()};
-    if (!s) {
-        return "<E: Read failure>";
-    }
-    auto i_space{cmd.find(' ')};
-    if (i_space == string::npos) {
-        auto i_fs{cmd.rfind('/', i_space)};
-        if (i_fs == string::npos) {
-            return cmd;
+    ifs.ignore(numeric_limits<streamsize>::max(), '(');
+    return [&]() {
+        string name;
+        for (char c; ifs >> c, c != ')';) {
+            name += c;
         }
-        return cmd.substr(i_fs + 1, cmd.size() - i_fs - 1);
-    }
-    auto i_fs{cmd.rfind('/', i_space)};
-    return cmd.substr(i_fs + 1, i_space - i_fs);
+        return name;
+    }();
 }
 
 class Executor : protected fdstreambuf, protected istream {

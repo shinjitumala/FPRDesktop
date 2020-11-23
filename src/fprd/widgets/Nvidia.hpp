@@ -64,9 +64,8 @@ class Nvidia {
     Text<true, TextAlign::right> power;
 
     array<Text<true, TextAlign::left>, nvml::Device::max_procs> procs;
-    inline static const size_t max_name_len{16};
+    inline static const size_t max_name_len{20};
 
-    /// If there is updated data since the last draw.
     float current_power{};
     float current_memory{};
 
@@ -163,12 +162,12 @@ class Nvidia {
 
             ostringstream oss;
             oss << setfill(' ') << setw(5) << right << "PID";
-            oss << "|";
+            oss << " ";
             oss << setfill(' ') << setw(1) << right << "T";
-            oss << "|";
+            oss << " ";
             oss << setfill(' ') << setw(max_name_len) << left << "Name";
-            oss << "|";
-            oss << setfill(' ') << setw(5) << right << "MB";
+            oss << " ";
+            oss << setfill(' ') << setw(7) << right << "Memory";
 
             t.set_font(noto_sans_bold, Color{white});
             t.move_to(pos + Position<float>{0, w}, L3_area(w), L3_m);
@@ -212,9 +211,9 @@ class Nvidia {
                                    return p.name.substr(0, max_name_len - 3) +
                                           "...";
                                }();
-                        oss << "x";
-                        oss << setfill(' ') << setw(5) << right
-                            << to_string((float)p.t.usedGpuMemory * 1e-6, 0);
+                        oss << " ";
+                        oss << setfill(' ') << setw(7) << right
+                            << (to_string((float)p.t.usedGpuMemory * 1e-6, 0) + "MB");
                         return oss.str();
                     }
                     return "";
