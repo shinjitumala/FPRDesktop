@@ -33,9 +33,9 @@ const Font noto_sans_bold{"Noto Sans Mono", CAIRO_FONT_SLANT_NORMAL,
 float L1_h{64};
 float L2_h{32};
 float L3_h{16};
-Margin<float> L1_m{4, 4};
-Margin<float> L2_m{2, 2};
-Margin<float> L3_m{1, 1};
+Margin<float> L1_m{8, 8};
+Margin<float> L2_m{4, 4};
+Margin<float> L3_m{2, 2};
 Size<float> L1_area(float w) { return {w, L1_h}; };
 Size<float> L2_area(float w) { return {w, L2_h}; };
 Size<float> L3_area(float w) { return {w, L3_h}; };
