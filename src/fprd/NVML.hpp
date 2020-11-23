@@ -13,6 +13,7 @@
 #include <dbg/Log.hpp>
 #include <fprd/System.hpp>
 #include <fprd/util/ostream.hpp>
+#include <future>
 #include <span>
 
 namespace fprd {
@@ -52,17 +53,21 @@ class Device {
     const string name;         // Product name
     const float memory_total;  // GB
 
-    u_char utilization;         // %
-    u_char memory;              // %
-    u_char utilization_memory;  // %
-    u_char fan;                 // %
-    u_char temp;                // Celsius
-    float power;                // Watts
-    short clock;                // MHz
+    struct DynamicData {
+        u_char utilization;         // %
+        u_char memory;              // %
+        u_char utilization_memory;  // %
+        u_char fan;                 // %
+        u_char temp;                // Celsius
+        float power;                // Watts
+        short clock;                // MHz
 
-    /// Sorted list of processes.
-    /// INFO: Maximum of 'max_procs' items shown.
-    vector<Process> procs;
+        /// Sorted list of processes.
+        /// INFO: Maximum of 'max_procs' items shown.
+        vector<Process> procs;
+    };
+    DynamicData data;
+    future<DynamicData> f;
 
    private:
     Device(nvmlDevice_t t)
@@ -79,39 +84,55 @@ class Device {
           }()} {};
 
    public:
+    void start_update() {
+        promise<DynamicData> p;
+        f = async(launch::async, &Device::update, this);
+    }
+    /// @return true There is new data.
+    /// @return false 
+    bool check_update() {
+        if (f.valid() && f.wait_for(0s) == future_status::ready) {
+            data = f.get();
+            return true;
+        }
+        return false;
+    }
+
+   private:
     /// Update mutable data for this device.
-    void update() {
-        tie(utilization, utilization_memory) = [this]() {
+    [[nodiscard]] DynamicData update() const {
+        DynamicData data;
+        tie(data.utilization, data.utilization_memory) = [this]() {
             nvmlUtilization_t u;
             check(nvmlDeviceGetUtilizationRates(t, &u));
             return make_pair(u.gpu, u.memory);
         }();
-        memory = [this]() {
+        data.memory = [this]() {
             nvmlMemory_t m;
             check(nvmlDeviceGetMemoryInfo(t, &m));
             return static_cast<u_char>((double)m.used / (double)m.total * 100);
         }();
-        fan = [this]() {
+        data.fan = [this]() {
             unsigned int s;
             check(nvmlDeviceGetFanSpeed(t, &s));
             return s;
         }();
-        temp = [this]() {
+        data.temp = [this]() {
             unsigned int temp;
             check(nvmlDeviceGetTemperature(t, NVML_TEMPERATURE_GPU, &temp));
             return temp;
         }();
-        power = [this]() {
+        data.power = [this]() {
             unsigned int p;
             check(nvmlDeviceGetPowerUsage(t, &p));
             return (float)p / 1000;
         }();
-        clock = [this]() {
+        data.clock = [this]() {
             unsigned int c;
             check(nvmlDeviceGetClockInfo(t, NVML_CLOCK_GRAPHICS, &c));
             return c;
         }();
-        procs = [this]() {
+        data.procs = [this]() {
             const auto procs{[this]() {
                 auto procs{[this]() -> vector<nvmlProcessInfo_t> {
                     array<nvmlProcessInfo_t, 16> i;
@@ -136,6 +157,7 @@ class Device {
             }
             return ps;
         }();
+        return data;
     }
 };
 

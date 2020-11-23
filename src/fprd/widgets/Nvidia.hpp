@@ -36,8 +36,6 @@ class Nvidia {
 
     nvml::Device &d;
 
-    Position<float> pos;
-
     inline static const Image gpu{
         resources / "icons" / "Computer" / "004-video-card.png", green};
     inline static const Image mem_i{
@@ -69,13 +67,11 @@ class Nvidia {
     inline static const size_t max_name_len{16};
 
     /// If there is updated data since the last draw.
-    bool updated{false};
     float current_power{};
     float current_memory{};
 
    public:
-    Nvidia(FPRWindow &win, nvml::Device &d, Position<float> pos)
-        : d{d}, pos{pos} {
+    Nvidia(FPRWindow &win, nvml::Device &d, Position<float> pos) : d{d} {
         {
             Text<false, TextAlign::center> t;
             t.move_to(pos + Position<float>{0, w / 2 - L2_h / 2}, L2_area(w),
@@ -188,41 +184,20 @@ class Nvidia {
         }
     }
 
-    void update_data() {
-        d.update();
-        util.target = (float)d.utilization / 100;
-        mem.target = (float)d.utilization_memory / 100;
-        temp.target = (float)d.temp / 100;
-        fan.target = (float)d.fan / 100;
-
-        updated = true;
-    };
+    void start_update() { d.start_update(); };
 
     void draw(FPRWindow &w) {
-        util.draw(w);
-        mem.draw(w);
-        temp.draw(w);
-        fan.draw(w);
-        current_power += (d.power - current_power) / 80;
-        current_clock += (d.clock - current_clock) / 80;
-        current_memory += ((float)d.memory - current_memory) / 80;
+        const auto &data{d.data};
+        if (d.check_update()) {
+            util.target = (float)data.utilization / 100;
+            mem.target = (float)data.utilization_memory / 100;
+            temp.target = (float)data.temp / 100;
+            fan.target = (float)data.fan / 100;
 
-        util_t.update(w, to_string(util.current * 100, 0) + "%");
-        mem_t2.update(
-            w, to_string((float)current_memory * d.memory_total / 100, 3) +
-                   "/" + to_string(d.memory_total, 0) + "GB");
-
-        mem_t.update(w, to_string(mem.current * 100, 0) + "%");
-        temp_t.update(w, to_string(temp.current * 100, 0) + "℃");
-        fan_t.update(w, to_string(fan.current * 100, 0) + "%");
-        power.update(w, to_string(current_power, 2) + "W");
-        clock.update(w, std::to_string(current_clock) + "MHz");
-
-        if (updated) {
             for (auto i{0U}; i < procs.size(); i++) {
                 const auto s{[&]() -> string {
-                    if (i < d.procs.size()) {
-                        const auto &p{d.procs.at(i)};
+                    if (i < data.procs.size()) {
+                        const auto &p{data.procs.at(i)};
 
                         ostringstream oss;
                         oss << setfill(' ') << setw(5) << right << p.t.pid;
@@ -237,7 +212,7 @@ class Nvidia {
                                    return p.name.substr(0, max_name_len - 3) +
                                           "...";
                                }();
-                        oss << " ";
+                        oss << "x";
                         oss << setfill(' ') << setw(5) << right
                             << to_string((float)p.t.usedGpuMemory * 1e-6, 0);
                         return oss.str();
@@ -246,8 +221,26 @@ class Nvidia {
                 }()};
                 procs[i].update(w, s);
             }
-            updated = false;
         }
+
+        util.draw(w);
+        mem.draw(w);
+        temp.draw(w);
+        fan.draw(w);
+        current_power += (data.power - current_power) / 80;
+        current_clock += (data.clock - current_clock) / 80;
+        current_memory += ((float)data.memory - current_memory) / 80;
+
+        util_t.update(w, to_string(util.current * 100, 0) + "%");
+        mem_t2.update(
+            w, to_string((float)current_memory * d.memory_total / 100, 3) +
+                   "/" + to_string(d.memory_total, 0) + "GB");
+
+        mem_t.update(w, to_string(mem.current * 100, 0) + "%");
+        temp_t.update(w, to_string(temp.current * 100, 0) + "℃");
+        fan_t.update(w, to_string(fan.current * 100, 0) + "%");
+        power.update(w, to_string(current_power, 2) + "W");
+        clock.update(w, std::to_string(current_clock) + "MHz");
     }
 };
 }  // namespace widget

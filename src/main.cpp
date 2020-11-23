@@ -6,10 +6,6 @@
 /// License: Proprietary.
 /// You may not use or share this file without the permission of the author.
 
-#include <cairo/cairo-ft.h>
-#include <cairo/cairo.h>
-#include <fontconfig/fontconfig.h>
-
 #include <algorithm>
 #include <chrono>
 #include <csignal>
@@ -22,6 +18,7 @@
 #include <fprd/Window.hpp>
 #include <fprd/parts/ArcBar.hpp>
 #include <fprd/parts/Text.hpp>
+#include <fprd/query/CPU.hpp>
 #include <fprd/util/to_string.hpp>
 #include <fprd/widgets/Nvidia.hpp>
 #include <fstream>
@@ -62,8 +59,8 @@ struct GPUWindow {
 
     GPUWindow(const GPUWindow &) = delete;
 
-    void update_data() {
-        for_each(gpus.begin(), gpus.end(), [](auto &w) { w.update_data(); });
+    void start_update() {
+        for_each(gpus.begin(), gpus.end(), [](auto &w) { w.start_update(); });
     }
 
     void draw() {
@@ -73,31 +70,35 @@ struct GPUWindow {
     }
 };
 
+struct DateTimeWindow {};
+
 int main(int argc, char **argv) {
     std::signal(SIGINT, stop);
     std::signal(SIGKILL, stop);
 
     const X11 x11{":0.0"};
 
+    query::CPU cpu{};
+
     GPUWindow gpus{x11};
 
     int count{};
-    for (; run; count++, count %= 60) {
+    for (; run; count++, count %= 3600) {
         using namespace chrono;
         const auto last{time_point<high_resolution_clock>::clock::now()};
 
-        if (count == 0) {
-            gpus.update_data();
+        if (count % 60 == 0) {
+            gpus.start_update();
+            cpu.start_update();
         }
 
         gpus.draw();
+        cpu.check_update();
 
-        dbg(if (count == 0) {
-            cout << duration_cast<milliseconds>(
+        dbg(cout << duration_cast<milliseconds>(
                         time_point<high_resolution_clock>::clock::now() - last)
                         .count()
-                 << "ms" << endl;
-        });
+                 << "ms" << endl;);
 
         this_thread::sleep_until(last + 16ms);
     }
