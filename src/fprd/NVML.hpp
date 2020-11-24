@@ -43,7 +43,7 @@ class Device {
 
    public:
     // Maximum number of processes shown.
-    inline static constexpr u_char max_procs{5};
+    inline static constexpr u_char max_procs{8};
 
    private:
     /// The wrapped thing.
@@ -89,7 +89,7 @@ class Device {
         f = async(launch::async, &Device::update, this);
     }
     /// @return true There is new data.
-    /// @return false 
+    /// @return false
     bool check_update() {
         if (f.valid() && f.wait_for(0s) == future_status::ready) {
             data = f.get();
