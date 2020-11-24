@@ -213,7 +213,8 @@ class Nvidia {
                                }();
                         oss << " ";
                         oss << setfill(' ') << setw(7) << right
-                            << (to_string((float)p.t.usedGpuMemory * 1e-6, 0) + "MB");
+                            << (to_string((float)p.t.usedGpuMemory * 1e-6, 0) +
+                                "MB");
                         return oss.str();
                     }
                     return "";
