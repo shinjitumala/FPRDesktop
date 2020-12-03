@@ -33,7 +33,7 @@ class LineCallbackBuf : public streambuf {
     /// @param dest Final Destination of the output
     /// @param callback Use this to pass dynamically allocated CallBack
     /// functions.
-    LineCallbackBuf(ostream &dest, Callback &callback)
+    constexpr LineCallbackBuf(ostream &dest, Callback &callback)
         : destination{dest.rdbuf()}, callback{callback} {}
 
     /// Since we did not define a character, this function will be called for
@@ -69,7 +69,8 @@ class CombinedCallback {
    public:
     /// Use this to initialize the callback classes with arguments.
     /// @param callbacks
-    CombinedCallback(Callbacks &...callbacks) : callbacks(callbacks...) {}
+    constexpr CombinedCallback(Callbacks &...callbacks)
+        : callbacks(callbacks...) {}
 
     /// Called when LineCallbackBuf
     /// @param buf

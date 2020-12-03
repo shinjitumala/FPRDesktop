@@ -20,6 +20,7 @@
 #include <fprd/parts/Text.hpp>
 #include <fprd/query/CPU.hpp>
 #include <fprd/util/to_string.hpp>
+// #include <fprd/widgets/CPU.hpp>
 #include <fprd/widgets/Nvidia.hpp>
 #include <fstream>
 #include <ranges>
@@ -41,27 +42,20 @@ struct GPUWindow {
 
     vector<widget::Nvidia> gpus;
 
-    GPUWindow(const X11 &x11)
+    GPUWindow()
         : nvml{},
-          devs{nvml.get_devices()},
-          win{x11,
-              {0, 0},
-              {static_cast<unsigned int>(devs.size() * widget::Nvidia::w),
-               static_cast<unsigned int>(widget::Nvidia::h)}},
+          devs{nvml.get_devices(run)},
+          win{":0.0", {0, 0}, widget::Nvidia::size.scale({devs.size(), 1})},
           gpus{[&]() {
               vector<widget::Nvidia> gpus;
               for (auto i{0U}; i < devs.size(); i++) {
-                  gpus.emplace_back(
-                      widget::Nvidia{win, devs[i], {i * widget::Nvidia::w, 0}});
+                  gpus.emplace_back(widget::Nvidia{
+                      win, devs[i], {i * widget::Nvidia::size.w, 0}});
               }
               return gpus;
           }()} {}
 
     GPUWindow(const GPUWindow &) = delete;
-
-    void start_update() {
-        for_each(gpus.begin(), gpus.end(), [](auto &w) { w.start_update(); });
-    }
 
     void draw() {
         for_each(gpus.begin(), gpus.end(),
@@ -70,35 +64,48 @@ struct GPUWindow {
     }
 };
 
-struct DateTimeWindow {};
+// struct CPUWindow {
+//     query::CPU q;
+//     FPRWindow win;
+//     widget::CPU widget;
+
+//     CPUWindow()
+//         : q{},
+//           win{":0.0", widget::CPU::size.top_right({1920, 0}),
+//               widget::CPU::size},
+//           widget{win, q, {0, 0}} {}
+
+//     void start_update() { q.start_update(); }
+
+//     void draw() {
+//         widget.draw(win);
+//         win.flush();
+//     }
+// };
 
 int main(int argc, char **argv) {
     std::signal(SIGINT, stop);
     std::signal(SIGKILL, stop);
 
-    const X11 x11{":0.0"};
-
-    query::CPU cpu{};
-
-    GPUWindow gpus{x11};
+    GPUWindow gpus{};
+    // CPUWindow cpu{};
 
     int count{};
     for (; run; count++, count %= 3600) {
         using namespace chrono;
         const auto last{time_point<high_resolution_clock>::clock::now()};
 
-        if (count % 60 == 0) {
-            gpus.start_update();
-            cpu.start_update();
-        }
+        // if (count % 60 == 0) {
+        //     cpu.start_update();
+        // }
 
         gpus.draw();
-        cpu.check_update();
+        // cpu.draw();
 
-        dbg(cout << duration_cast<milliseconds>(
-                        time_point<high_resolution_clock>::clock::now() - last)
-                        .count()
-                 << "ms" << endl;);
+        // dbg(cout << duration_cast<milliseconds>(
+        //                 time_point<high_resolution_clock>::clock::now() -
+        //                 last) .count()
+        //          << "ms" << endl;);
 
         this_thread::sleep_until(last + 16ms);
     }

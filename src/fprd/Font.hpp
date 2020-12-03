@@ -24,8 +24,8 @@ class Font {
    public:
     Font() : f{nullptr} {};
 
-    Font(string &&family, cairo_font_slant_t s, cairo_font_weight_t w)
-        : f{cairo_toy_font_face_create(family.c_str(), s, w)} {}
+    Font(string_view family, cairo_font_slant_t s, cairo_font_weight_t w)
+        : f{cairo_toy_font_face_create(family.data(), s, w)} {}
 
     ~Font() { destroy(); }
 

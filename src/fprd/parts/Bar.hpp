@@ -12,27 +12,33 @@
 
 namespace fprd {
 
-template <Source Frame = Color, Source Empty = Color, Source Filled = Color>
+template <bool vertical, Source Frame = Color, Source Empty = Color,
+          Source Filled = Color>
 struct Bar {
     Position<float> bar;
-    Size<float> s_bar;
+    Area<float> s_bar;
     Position<float> bar_internal;
-    Size<float> s_bar_internal;
+    Area<float> s_bar_internal;
 
     Frame frame;
     Empty empty;
     Filled filled;
 
-    Bar(Position<float> pos, Size<float> area, Margin<float> to_bar,
-        Margin<float> to_internal_bar, Frame &&frame = {}, Empty &&empty = {},
-        Filled &&filled = {})
-        : bar{pos - to_bar},
-          s_bar{area - to_bar},
-          bar_internal{bar - to_internal_bar},
-          s_bar_internal{s_bar - to_internal_bar},
-          frame{move(frame)},
-          empty{move(empty)},
-          filled{move(filled)} {}
+    Bar() = default;
+
+    void move_to(Position<float> pos, Area<float> area, Margin<float> to_bar,
+                 Margin<float> to_internal_bar) {
+        bar = pos.pad(to_bar);
+        s_bar = area.pad(to_bar);
+        bar_internal = bar.pad(to_internal_bar);
+        s_bar_internal = s_bar.pad(to_internal_bar);
+    }
+
+    void set_colors(Frame frame, Empty empty, Filled filled) {
+        this->frame = frame;
+        this->empty = empty;
+        this->filled = filled;
+    }
 
     void update(FPRWindow &w, double percent) const {
         w.rectangle(bar, s_bar);
@@ -41,16 +47,23 @@ struct Bar {
         w.rectangle(bar_internal, s_bar_internal);
         w.set_source(empty);
         w.fill();
-        w.rectangle(bar_internal, s_bar_internal.scale({percent / 100, 1}));
+        if constexpr (vertical) {
+            auto p{bar_internal};
+            p.y += s_bar_internal.h * (100 - percent) / 100;
+            w.rectangle(p, s_bar_internal.scale({1, percent / 100}));
+        } else {
+            w.rectangle(bar_internal, s_bar_internal.scale({percent / 100, 1}));
+        }
         w.set_source(filled);
         w.fill();
     }
 };
 
-template <Source Frame = Color, Source Empty = Color, Source Filled = Color>
-struct BarSmooth : protected Bar<Frame, Empty, Filled> {
+template <bool vertical, Source Frame = Color, Source Empty = Color,
+          Source Filled = Color>
+struct BarSmooth : public Bar<vertical, Frame, Empty, Filled> {
    private:
-    using Base = Bar<Frame, Empty, Filled>;
+    using Base = Bar<vertical, Frame, Empty, Filled>;
 
    public:
     /// The currently displayed percentage.
@@ -60,8 +73,7 @@ struct BarSmooth : protected Bar<Frame, Empty, Filled> {
     /// Smoothness (Higher is smoother)
     short smoothness;
 
-    BarSmooth(Base &&bar, short smoothness)
-        : Base{move(bar)}, smoothness{smoothness} {}
+    BarSmooth() = default;
 
     void update_target(float percent) { target = percent; }
     void update(FPRWindow &w) {

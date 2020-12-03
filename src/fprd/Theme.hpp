@@ -30,15 +30,20 @@ const Font noto_sans_bold{"Noto Sans Mono", CAIRO_FONT_SLANT_NORMAL,
                           CAIRO_FONT_WEIGHT_BOLD};
 
 /// Some preset sizes.
-float L1_h{64};
-float L2_h{32};
-float L3_h{16};
-Margin<float> L1_m{8, 8};
-Margin<float> L2_m{4, 4};
-Margin<float> L3_m{2, 2};
-Size<float> L1_area(float w) { return {w, L1_h}; };
-Size<float> L2_area(float w) { return {w, L2_h}; };
-Size<float> L3_area(float w) { return {w, L3_h}; };
+constexpr float L1_h{64};
+constexpr float L2_h{32};
+constexpr float L3_h{16};
+constexpr Margin<float> L1_m{8, 8};
+constexpr Margin<float> L2_m{4, 4};
+constexpr Margin<float> L3_m{2, 2};
+constexpr Area<float> L1_area(float w) { return {w, L1_h}; };
+constexpr Area<float> L2_area(float w) { return {w, L2_h}; };
+constexpr Area<float> L3_area(float w) { return {w, L3_h}; };
+
+template <number I>
+constexpr auto slow_update(I current, I target) {
+    return (float)(target - current) / 100 + current;
+}
 
 };  // namespace theme
 };  // namespace fprd

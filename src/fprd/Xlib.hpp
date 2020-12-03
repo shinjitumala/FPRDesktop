@@ -148,7 +148,7 @@ class X11 {
 
     auto destroy_window(Window w) const { XDestroyWindow(d, w); };
     [[nodiscard]] auto create_window(
-        Window parent, Position<int> pos, Size<unsigned int> size,
+        Window parent, Position<int> pos, Area<unsigned int> size,
         unsigned int border_w, int depth, unsigned int window_class,
         Visual *visual, unsigned long value_mask,
         const XSetWindowAttributes &attributes) const {

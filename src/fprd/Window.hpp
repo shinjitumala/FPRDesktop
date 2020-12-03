@@ -28,7 +28,7 @@ concept Source = is_same_v<O, Color> || is_base_of_v<Pattern, O>;
 /// I feel like this is like a GOD-class.
 class FPRWindow {
     /// Our connection to the X11 server.
-    const X11 &x11;
+    const X11 x11;
     /// The X11 window we create.
     const Window w;
 
@@ -51,12 +51,58 @@ class FPRWindow {
     /// @param x11
     /// @param pos
     /// @param size
-    FPRWindow(const X11 &x11, Position<int> pos, Size<unsigned int> size)
-        : FPRWindow{x11, x11.default_screen(), pos, size} {
-        /// Wait until our surface is ready.
-        for (XEvent e; XNextEvent(x11.display(), &e), e.type == MapNotify;) {
-        }
-    }
+    FPRWindow(string_view display_name, Position<int> pos,
+              Area<unsigned int> size)
+        : x11{display_name.data()},
+          w{[&x11 = this->x11, pos, size]() {
+              const auto root{x11.root_window(x11.default_screen())};
+              const auto w{[&x11, root, size]() {
+                  XSetWindowAttributes attr{
+                      ParentRelative,
+                      0,
+                      0,
+                      0,
+                      0,
+                      0,
+                      Always,
+                      0,
+                      0,
+                      False,
+                      ExposureMask | StructureNotifyMask | ButtonPressMask |
+                          ButtonReleaseMask,
+                      0,
+                      False,
+                      0,
+                      None,
+                  };
+
+                  return x11.create_window(
+                      root, {0, 0}, size, 0, CopyFromParent, InputOutput,
+                      CopyFromParent,
+                      CWOverrideRedirect | CWBackingStore | CWBackPixel, attr);
+              }()};
+
+              x11.change_property(w, x11.atom("_NET_WM_WINDOW_TYPE"), XA_ATOM,
+                                  32, PropModeReplace,
+                                  array<unsigned long, 1>{
+                                      x11.atom("_NET_WM_WINDOW_TYPE_DESKTOP")});
+
+              x11.map_window(w);
+
+              x11.move_window(w, pos);
+              return w;
+          }()},
+          buf_s{
+              cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.w, size.h)},
+          buf{cairo_create(buf_s)},
+
+          buf2_s{
+              cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.w, size.h)},
+          buf2{cairo_create(buf2_s)},
+          win_s{cairo_xlib_surface_create(
+              x11.display(), w, x11.default_visual(x11.default_screen()),
+              size.w, size.h)},
+          win{cairo_create(win_s)} {}
 
     /// Change the current source to a color.
     /// @param color
@@ -71,7 +117,7 @@ class FPRWindow {
         cairo_set_source_surface(buf, i, pos.x, pos.y);
     };
 
-    void draw_image(const Image &i, Position<float> pos, Size<float> size) {
+    void draw_image(const Image &i, Position<float> pos, Area<float> size) {
         cairo_save(buf);
         cairo_translate(buf, pos.x, pos.y);
         cairo_scale(buf, (double)size.w / i.w, (double)size.h / i.h);
@@ -90,7 +136,7 @@ class FPRWindow {
     /// Draw a rectangle.
     /// @param pos
     /// @param size
-    void rectangle(Position<float> pos, Size<float> size) {
+    void rectangle(Position<float> pos, Area<float> size) {
         cairo_rectangle(buf, pos.x, pos.y, size.w, size.h);
     }
 
@@ -136,7 +182,7 @@ class FPRWindow {
     void set_font_size(double size) { cairo_set_font_size(buf, size); };
     /// Print text on the screen.
     /// @param s
-    void print_text(string &&s) { cairo_show_text(buf, s.c_str()); }
+    void print_text(string_view s) { cairo_show_text(buf, s.data()); }
 
     /// Obtain the font extent.
     /// @param font
@@ -149,9 +195,9 @@ class FPRWindow {
     /// Obtain the text extent.
     /// @param s
     /// @return auto
-    auto get_text_extent(const string &s) {
+    auto get_text_extent(string_view s) {
         cairo_text_extents_t e;
-        cairo_text_extents(buf, s.c_str(), &e);
+        cairo_text_extents(buf, s.data(), &e);
         return e;
     }
 
@@ -180,58 +226,5 @@ class FPRWindow {
         cairo_surface_destroy(win_s);
         x11.destroy_window(w);
     }
-
-   private:
-    FPRWindow(const X11 &x11, int screen, Position<int> pos,
-              Size<unsigned int> size)
-        : x11{x11},
-          w{[&x11, screen, pos, size]() {
-              const auto root{x11.root_window(screen)};
-              const auto w{[&x11, root, size]() {
-                  XSetWindowAttributes attr{
-                      ParentRelative,
-                      0,
-                      0,
-                      0,
-                      0,
-                      0,
-                      Always,
-                      0,
-                      0,
-                      False,
-                      ExposureMask | StructureNotifyMask | ButtonPressMask |
-                          ButtonReleaseMask,
-                      0,
-                      False,
-                      0,
-                      None,
-                  };
-
-                  return x11.create_window(
-                      root, {0, 0}, size, 0, CopyFromParent, InputOutput,
-                      CopyFromParent,
-                      CWOverrideRedirect | CWBackingStore | CWBackPixel, attr);
-              }()};
-
-              x11.change_property(w, x11.atom("_NET_WM_WINDOW_TYPE"), XA_ATOM,
-                                  32, PropModeReplace,
-                                  array<unsigned long, 1>{
-                                      x11.atom("_NET_WM_WINDOW_TYPE_DESKTOP")});
-
-              x11.map_window(w);
-
-              x11.move_window(w, pos);
-              return w;
-          }()},
-          buf_s{
-              cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.w, size.h)},
-          buf{cairo_create(buf_s)},
-
-          buf2_s{
-              cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.w, size.h)},
-          buf2{cairo_create(buf2_s)},
-          win_s{cairo_xlib_surface_create(
-              x11.display(), w, x11.default_visual(screen), size.w, size.h)},
-          win{cairo_create(win_s)} {}
 };
 };  // namespace fprd

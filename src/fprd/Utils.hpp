@@ -1,4 +1,4 @@
-/// @file Utils.hpp
+/// @file Util.hpp
 /// @author FPR (funny.pig.run __ATMARK__ gmail.com)
 ///
 /// @copyright Copyright (c) 2020
@@ -8,69 +8,147 @@
 
 #pragma once
 
-#include <utility>
+#include <concepts>
+#include <ostream>
+#include <sstream>
 
 namespace fprd {
-using namespace std;
+using namespace ::std;
 
 template <class I>
-concept Number = is_integral_v<I> || is_floating_point_v<I>;
+concept number = integral<I> || floating_point<I>;
 
-/// For readability.
-template <Number I = double>
+template <integral I, floating_point F>
+constexpr I round(F f) {
+    auto ipart{static_cast<I>(f)};
+    auto fpart{f - static_cast<F>(ipart)};
+    if (fpart < -0.5) {
+        return ipart - 1;
+    }
+    if (0.5 <= fpart) {
+        return ipart + 1;
+    }
+    return ipart;
+}
+
+template <number I>
 struct Margin {
-    I x;
-    I y;
+    I l;
+    I r;
+    I t;
+    I b;
 
-    Margin operator+(Margin m) const { return {x + m.x, y + m.y}; };
-    Margin operator*(float s) const { return {x * s, y * s}; };
+    constexpr Margin() = default;
+    constexpr Margin(I l, I r, I t, I b) : l{l}, r{r}, t{t}, b{b} {}
+    constexpr Margin(I x, I y) : l{x}, r{y}, t{y}, b{y} {}
 
-    template <class T>
-    operator Margin<T>() requires is_convertible_v<I, T> {
-        return {x, y};
+    constexpr Margin operator+(Margin rhs) const {
+        return {l + rhs.l, r + rhs.r, t + rhs.t, b + rhs.b};
     }
-};
-
-/// For readability.
-template <Number I = double>
-struct Size {
-    I w;
-    I h;
-
-    Size pad(Margin<I> m) const { return {w - m.x * 2, h - m.y * 2}; };
-
-    [[nodiscard]] Size scale(pair<double, double> scale) const {
-        return {w * scale.first, h * scale.second};
+    template <number S>
+    requires convertible_to<S, I> constexpr Margin operator*(S scale) const {
+        I s{static_cast<I>(scale)};
+        return {l * s, r * s, t * s, b * s};
     };
-
-    auto operator<=>(const Size &) const = default;
-
-    template <class T>
-    operator Size<T>() requires is_convertible_v<I, T> {
-        return {w, h};
+    template <number S>
+    requires convertible_to<I, S> constexpr operator Margin<S>() const {
+        if constexpr (is_floating_point_v<I> && is_integral_v<S>) {
+            return {round<S>(l), round<S>(r), round<S>(t), round<S>(b)};
+        }
+        return {static_cast<S>(l), static_cast<S>(r), static_cast<S>(t),
+                static_cast<S>(b)};
     }
 };
 
-/// For readability.
-template <Number I = double>
+template <number I>
+struct Area;
+
+template <number I>
 struct Position {
     I x;
     I y;
 
-    Position pad(Margin<I> m) const { return {x + m.x, y + m.y}; }
-    Position operator+(Position p) const { return {x + p.x, y + p.y}; }
-    /// Bottom left
-    Position bl(Size<I> s) const { return {x, y - s.h}; };
-    /// Top right
-    Position tr(Size<I> s) const { return {x - s.w, y}; };
-    /// Bottom right
-    Position br(Size<I> s) const { return {x - s.w, y - s.h}; };
-    /// Horizontal center
-    Position hc(Size<I> s) const { return {x - s.w / 2, y}; };
+    constexpr Position() = default;
+    constexpr Position(I x, I y) : x{x}, y{y} {}
 
-    template <class T>
-    operator Position<T>() requires is_convertible_v<I, T> {
-        return {x, y};
+    /// IMPORTANT: Always pad first before applying area adjustments.
+    /// @param m
+    /// @return constexpr Position
+    [[nodiscard]] constexpr Position pad(Margin<I> m) const {
+        return {x + m.l, y + m.t};
+    }
+
+    constexpr Position operator+(Position rhs) const {
+        return {x + rhs.x, y + rhs.y};
+    }
+
+    constexpr Position stack_right(Area<I> a) { return {x + a.w, y}; }
+    constexpr Position stack_bottom(Area<I> a) { return {x, y + a.h}; }
+
+    /// Becase we can't type deduct with 'operator+'?
+    /// @param rhs
+    /// @return constexpr Position
+    constexpr Position offset(Position rhs) const { return *this + rhs; }
+
+    template <number S>
+    requires convertible_to<I, S> constexpr operator Position<S>() const {
+        if constexpr (is_floating_point_v<I> && is_integral_v<S>) {
+            return {round<S>(x), round<S>(y)};
+        }
+        return {static_cast<S>(x), static_cast<S>(y)};
+    }
+
+    ostream& print(ostream& os) const {
+        os << "{" << x << ", " << y << "}";
+        return os;
     }
 };
-};  // namespace fprd
+
+template <number I>
+struct Area {
+    I w;
+    I h;
+
+    constexpr Area() = default;
+    constexpr Area(I w, I h) : w{w}, h{h} {}
+
+    [[nodiscard]] constexpr Area pad(Margin<I> m) const {
+        return {w - m.l - m.r, h - m.t - m.b};
+    };
+    [[nodiscard]] constexpr Area scale(pair<float, float> scale) const {
+        return {w * scale.first, h * scale.second};
+    }
+    template <number S>
+    requires convertible_to<I, S> constexpr operator Area<S>() const {
+        if constexpr (is_floating_point_v<I> && is_integral_v<S>) {
+            return {round<S>(w), round<S>(h)};
+        }
+        return {static_cast<S>(w), static_cast<S>(h)};
+    }
+
+    [[nodiscard]] constexpr Position<I> bottom_left(Position<I> pos) const {
+        return {pos.x, pos.y - h};
+    }
+    [[nodiscard]] constexpr Position<I> top_right(Position<I> pos) const {
+        return {pos.x - w, pos.y};
+    }
+    [[nodiscard]] constexpr Position<I> bottom_right(Position<I> pos) const {
+        return {pos.x - w, pos.y - h};
+    }
+    [[nodiscard]] constexpr Position<I> horizontal_center(
+        Position<I> pos) const {
+        return {pos.x - w / 2, pos.y};
+    }
+    [[nodiscard]] constexpr Position<I> vertical_center(Position<I> pos) const {
+        return {pos.x, pos.y - h / 2};
+    }
+    [[nodiscard]] constexpr Position<I> center(Position<I> pos) const {
+        return {pos.x - w / 2, pos.y - h / 2};
+    }
+
+    ostream& print(ostream& os) const {
+        os << "{" << w << ", " << h << "}";
+        return os;
+    }
+};
+}  // namespace fprd

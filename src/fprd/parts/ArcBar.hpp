@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <fprd/Theme.hpp>
 #include <fprd/Utils.hpp>
 #include <fprd/Window.hpp>
 
@@ -25,14 +26,14 @@ struct ArcBarBase {
     Color bg;
     Color fg;
 
-    float current{};  // %
-    float target;     // %
+    float current{0};  // %
+    float target{0};   // %
 };
 
 template <bool clock_wise>
 struct ArcBar : public ArcBarBase {
     void draw(FPRWindow &w) {
-        current += (target - current) / 100;
+        current = theme::slow_update(current, target);
 
         w.set_line_width(bar_width - border_width * 2);
         w.arc(center, radious - bar_width / 2, start, start);
@@ -42,7 +43,7 @@ struct ArcBar : public ArcBarBase {
         w.stroke();
         w.set_source(fg);
         arc<true>(w, center, radious - bar_width / 2, start,
-                  start + (end - start) * current);
+                  start + (end - start) * current / 100);
         w.stroke();
         w.set_source(border);
         w.set_line_width(border_width);

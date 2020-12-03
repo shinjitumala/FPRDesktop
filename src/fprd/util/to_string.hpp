@@ -20,10 +20,17 @@ using namespace std;
 /// @tparam Float
 /// @param f
 /// @return auto
-template <class Float>
-auto to_string(Float f, u_char precision) requires is_floating_point_v<Float> {
+template <u_char precision, class Float>
+auto ftos(Float f) requires is_floating_point_v<Float> {
     ostringstream oss;
     oss << setprecision(precision) << fixed << f;
+    return oss.str();
+}
+
+template <size_t w>
+auto width(string&& s) {
+    ostringstream oss;
+    oss << setfill(' ') << setw(w) << s;
     return oss.str();
 }
 };  // namespace fprd

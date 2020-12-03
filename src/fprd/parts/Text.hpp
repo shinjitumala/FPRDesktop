@@ -8,69 +8,98 @@
 
 #pragma once
 
+#include <cairo/cairo.h>
+
 #include <fprd/Window.hpp>
 #include <optional>
 
 namespace fprd {
-enum class TextAlign : u_char {
+enum class VerticalAlign : u_char {
     center,
     left,
     right,
 };
 
-template <bool clear = true, TextAlign vertical = TextAlign::left,
-          Source Foreground = Color, Source Background = Color>
-class Text {
+/// The base data for texts.
+struct TextBase {
+    const Font *font{nullptr};
+
     Position<float> pos;
-    Size<float> area;
-    double size;
-    Position<float> text_pos;
-    optional<const Font *> f{nullopt};
+    Area<float> area;
+};
 
-    Background bg;
-    Foreground fg;
+/// The detailed text with behavioral changes based on the alignment and
+/// foreground source type.
+/// @tparam vertical
+/// @tparam Foreground
+template <VerticalAlign V, Source FG = Color>
+struct Text : public TextBase {
+    FG fg;
 
-   public:
-    void move_to(Position<float> pos, Size<float> area, Margin<float> m) {
-        this->pos = pos;
-        this->area = area;
-        size = (area.pad(m)).h;
-        this->text_pos = [pos, m, size = size]() {
-            auto p{pos.pad(m)};
-            p.y += size;
-            return p;
-        }();
-    }
-    void set_font(const Font &f, Foreground fg = {"ffffff"},
-                  Background bg = {"000000"}) {
-        this->f = &f;
-        this->fg = fg;
-        this->bg = bg;
-    }
-
-    void update(FPRWindow &w, string s) {
-        if constexpr (clear) {
-            w.set_source(bg);
-            w.rectangle(pos, area);
-            w.fill();
+    void update(FPRWindow &w, string_view s) const {
+        const auto font_size{area.h * 0.80F};
+        w.set_font_size(font_size);
+        if (font == nullptr) {
+            fatal_error("No fonts set.");
         }
-        w.set_font_size(size);
-        w.set_font(**f);
+        w.set_font(*font);
         w.set_source(fg);
-        if constexpr (vertical == TextAlign::left) {
-            w.move_to(text_pos);
-        } else if constexpr (vertical == TextAlign::center ||
-                             vertical == TextAlign::right) {
+        w.move_to([this, &w, &s, font_size]() {
             const auto te{w.get_text_extent(s)};
-            auto pos{text_pos};
-            if constexpr (vertical == TextAlign::center) {
-                pos.x = pos.x + area.w / 2 - te.width / 2;
-            } else if constexpr (vertical == TextAlign::right) {
-                pos.x = pos.x + area.w - (text_pos.x - pos.x + 3) - te.width;
+            dbg(if (te.width > area.w || te.height > area.h) {
+                dbg_out("WARNING: Text exceeds draw area. Area: "
+                        << area << ", Extent: {" << te.width << ", "
+                        << te.height << "}");
+            });
+            if constexpr (V == VerticalAlign::left) {
+                return pos.offset({0, font_size});
             }
-            w.move_to(pos);
-        }
-        w.print_text(move(s));
+            if constexpr (V == VerticalAlign::center) {
+                return pos.offset({area.w / 2 - te.width / 2, font_size});
+            }
+            if constexpr (V == VerticalAlign::right) {
+                return pos.offset({area.w - te.width, font_size});
+            }
+        }());
+        w.print_text(s);
+    }
+
+    template <VerticalAlign OV>
+    auto &operator=(const Text<OV, FG> &rhs) {
+        *static_cast<TextBase *>(this) = static_cast<const TextBase &>(rhs);
+        fg = rhs.fg;
+        return *this;
     }
 };
+
+/// Fills the background area with color before updating text.
+/// @tparam vertical
+/// @tparam Foreground
+/// @tparam Background
+template <VerticalAlign V, Source FG = Color, Source BG = Color>
+struct DynamicText : public Text<V, FG> {
+   private:
+    using Base = Text<V, FG>;
+
+   public:
+    BG bg;
+
+    template <VerticalAlign OV>
+    auto &operator=(const DynamicText<OV, FG, BG> &rhs) {
+        *static_cast<Text<V, FG> *>(this) =
+            static_cast<const Text<OV, FG> &>(rhs);
+        bg = rhs.bg;
+        return *this;
+    }
+
+    void update(FPRWindow &w, string_view s) const {
+        w.set_source(bg);
+        w.rectangle(Base::pos, Base::area);
+        w.fill();
+        Base::update(w, s);
+    }
+};
+
+template <VerticalAlign V, Source FG = Color>
+using StaticText = Text<V, FG>;
 }  // namespace fprd
