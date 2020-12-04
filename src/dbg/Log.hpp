@@ -37,19 +37,4 @@ using namespace std;
                << msg << ::std::endl;                                     \
     ::abort();                                                            \
     ::exit(1)
-
-/// Get the current time.
-/// @return auto
-auto now() {
-    using namespace ::std::chrono;
-    return time_point<high_resolution_clock>::clock::now();
-}
-
-/// Gets time difference in milliseconds.
-/// @param tp
-/// @return auto
-auto diff(chrono::time_point<chrono::high_resolution_clock> &tp) {
-    using namespace std::chrono;
-    return duration_cast<milliseconds>(now() - tp).count();
-}
 };  // namespace dbg
