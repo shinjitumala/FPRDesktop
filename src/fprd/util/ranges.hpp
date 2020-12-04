@@ -13,6 +13,7 @@
 #include <fprd/Pattern.hpp>
 #include <iterator>
 #include <limits>
+#include <type_traits>
 #include <utility>
 
 namespace fprd {
@@ -80,13 +81,14 @@ auto operator|(C &c, Enumerate /* unused */) {
 /// @tparam Cs
 template <class... Cs>
 struct Zipped {
-    tuple<Cs &...> containers;
+    tuple<Cs...> containers;
 
     struct iterator {
         template <class C>
         using BaseIterator =
-            conditional_t<is_const_v<C>, typename C::const_iterator,
-                          typename C::iterator>;
+            conditional_t<is_const_v<remove_reference_t<C>>,
+                          typename remove_cvref_t<C>::const_iterator,
+                          typename remove_cvref_t<C>::iterator>;
 
         tuple<BaseIterator<Cs>...> itrs;
 
@@ -95,8 +97,6 @@ struct Zipped {
         using difference_type = int;
         using pointer = value_type *;
         using reference = value_type;
-
-        iterator(decltype(itrs) itrs) : itrs{itrs} {}
 
         auto operator++() {
             apply([](auto &...args) { (args++, ...); }, itrs);
@@ -120,17 +120,18 @@ struct Zipped {
     };
 
     iterator begin() {
-        return {apply([](auto&... args) { return make_tuple(args.begin()...); },
-                      containers)};
+        return iterator{
+            apply([](auto &&...args) { return make_tuple(args.begin()...); },
+                  containers)};
     }
     iterator end() {
-        return {apply([](auto&... args) { return make_tuple(args.end()...); },
+        return iterator{apply([](auto &&...args) { return make_tuple(args.end()...); },
                       containers)};
     }
 };
 
 template <class... Cs>
-auto zip(Cs &...args) {
-    return Zipped<Cs...>{make_tuple(ref(args)...)};
+auto zip(Cs &&...args) {
+    return Zipped<Cs...>{{args...}};
 }
 };  // namespace fprd
