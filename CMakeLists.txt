@@ -19,7 +19,7 @@ target_include_directories(
 # compile and link flags
 list(APPEND fprdesktop_compile_options -fno-rtti -fno-exceptions -Wall -g3)
 list(APPEND fprdesktop_link_options)
-list(APPEND fprdesktop_link_libraries tbb X11 cairo
+list(APPEND fprdesktop_link_libraries tbb X11 cairo pthread
      /opt/cuda/lib64/stubs/libnvidia-ml.so)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang") # Use LTO if clang is available.
   list(APPEND fprdesktop_compile_options -flto=thin)
