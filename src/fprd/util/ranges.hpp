@@ -77,59 +77,60 @@ auto operator|(C &c, Enumerate /* unused */) {
 }
 
 /// WARNING: The left range is assumed to be shorter or equal to the right one.
-/// @tparam LC
-/// @tparam RC
-template <class LC, class RC>
+/// @tparam Cs
+template <class... Cs>
 struct Zipped {
-    LC &lc;
-    RC &rc;
-
-    using LBaseIterator =
-        conditional_t<is_const_v<LC>, typename LC::const_iterator,
-                      typename LC::iterator>;
-    using RBaseIterator =
-        conditional_t<is_const_v<RC>, typename RC::const_iterator,
-                      typename RC::iterator>;
+    tuple<Cs &...> containers;
 
     struct iterator {
-        LBaseIterator li;
-        RBaseIterator ri;
+        template <class C>
+        using BaseIterator =
+            conditional_t<is_const_v<C>, typename C::const_iterator,
+                          typename C::iterator>;
 
-        using LBase = LBaseIterator;
-        using RBase = RBaseIterator;
+        tuple<BaseIterator<Cs>...> itrs;
 
         using iterator_category = bidirectional_iterator_tag;
-        using value_type = pair<decltype(*li) &, decltype(*ri) &>;
+        using value_type = tuple<decltype(*declval<BaseIterator<Cs>>()) &...>;
         using difference_type = int;
         using pointer = value_type *;
         using reference = value_type;
 
-        iterator(LBase li, RBase ri) : li{li}, ri{ri} {}
+        iterator(decltype(itrs) itrs) : itrs{itrs} {}
 
         auto operator++() {
-            li++;
-            ri++;
+            apply([](auto &...args) { (args++, ...); }, itrs);
             return *this;
         }
 
         auto operator--() {
-            li--;
-            ri--;
+            apply([](auto &...args) { (args--, ...); }, itrs);
             return *this;
         }
 
-        reference operator*() { return make_pair(ref(*li), ref(*ri)); }
-        bool operator!=(const iterator &rhs) const { return li != rhs.li; };
+        reference operator*() {
+            return apply([](auto... args) { return make_tuple(ref(*args)...); },
+                         itrs);
+        }
+        bool operator!=(const iterator &rhs) const {
+            return get<0>(itrs) != get<0>(rhs.itrs);
+        };
         // BUG?
         // auto operator<=>(const iterator &rhs) const { return li <=> rhs.li; }
     };
 
-    iterator begin() { return {lc.begin(), rc.begin()}; }
-    iterator end() { return {lc.end(), rc.end()}; }
+    iterator begin() {
+        return {apply([](auto&... args) { return make_tuple(args.begin()...); },
+                      containers)};
+    }
+    iterator end() {
+        return {apply([](auto&... args) { return make_tuple(args.end()...); },
+                      containers)};
+    }
 };
 
-template <class LC, class RC>
-auto zip(LC &lc, RC &rc) {
-    return Zipped<LC, RC>{lc, rc};
+template <class... Cs>
+auto zip(Cs &...args) {
+    return Zipped<Cs...>{make_tuple(ref(args)...)};
 }
 };  // namespace fprd
