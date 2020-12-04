@@ -41,7 +41,11 @@ constexpr Area<float> L2_area(float w) { return {w, L2_h}; };
 constexpr Area<float> L3_area(float w) { return {w, L3_h}; };
 
 template <number I>
-constexpr auto slow_update(I current, I target) {
+constexpr I slow_update(I current, I target) {
+    const auto d{target - current};
+    if (d == 0) {
+        return current;
+    }
     return (float)(target - current) / 100 + current;
 }
 
