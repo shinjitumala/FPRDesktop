@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <fprd/Theme.hpp>
 #include <fprd/Window.hpp>
 
 namespace fprd {
@@ -67,17 +68,15 @@ struct BarSmooth : public Bar<vertical, Frame, Empty, Filled> {
 
    public:
     /// The currently displayed percentage.
-    float current{};
+    float current{0};
     /// The targeted percentage.
-    float target{};
-    /// Smoothness (Higher is smoother)
-    short smoothness;
+    float target{0};
 
     BarSmooth() = default;
 
     void update_target(float percent) { target = percent; }
     void update(FPRWindow &w) {
-        current = current + (float)(target - current) / smoothness;
+        current = theme::slow_update(current, target);
         Base::update(w, current);
     };
 };
