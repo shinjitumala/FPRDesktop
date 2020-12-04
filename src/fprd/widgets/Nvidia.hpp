@@ -80,7 +80,7 @@ class Nvidia {
             .pos = pos,
         };
         Text<VerticalAlign::center> t{text_base};
-        t.area = {size.w - arc_bar_width * 2,50};
+        t.area = {size.w - arc_bar_width * 2, 50};
         t.pos = t.area.center(pos.offset({size.w / 2, size.w / 2}));
         t.fg = green;
         t.update(w, d.name.substr(8));
@@ -154,7 +154,7 @@ class Nvidia {
         dt.font = &noto_sans;
         dt.fg = white;
         dt.bg = black;
-        dt.area = L3_area(size.w * 0.25).pad(L3_m);
+        dt.area = L3_area(size.w * 0.25);
 
         dt.pos = pos.offset({size.w * 0.25, size.w * 0.375});
         clock = dt;
@@ -249,7 +249,7 @@ class Nvidia {
         fan_t.update(w, ftos<0>(fan.current) + "%");
 
         mem_t2.update(
-            w, ftos<3>(current_memory) + "/" + ftos<0>(d.memory_total) + "GB");
+            w, ftos<2>(current_memory) + "/" + ftos<0>(d.memory_total) + "GB");
 
         power.update(w, ftos<2>(current_power) + "W");
         clock.update(w, width<7>(to_string(current_clock) + "MHz"));
