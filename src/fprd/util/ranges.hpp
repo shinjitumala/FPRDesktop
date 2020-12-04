@@ -29,43 +29,42 @@ struct Enumeration {
     using BaseIterator =
         conditional_t<is_const_v<C>, typename C::const_iterator,
                       typename C::iterator>;
-    struct iterator : BaseIterator {
+    struct iterator {
        private:
         using Base = BaseIterator;
+        Base itr;
 
        public:
-        using iterator_category = typename Base::iterator_category;
-        using value_type = pair<size_t, typename Base::value_type>;
-        using difference_type = typename Base::difference_type;
-        using pointer = pair<size_t, typename Base::pointer>;
-        using reference = pair<size_t, typename Base::reference>;
+        using value_type = pair<size_t, decltype(*itr) &>;
+        using difference_type = int;
+        using pointer = value_type;
+        using reference = value_type;
 
        private:
         size_t index;
 
        public:
-        iterator(Base itr, size_t index) : Base{itr}, index{index} {}
+        iterator(Base itr, size_t index) : itr{itr}, index{index} {}
 
         auto operator++() {
             index++;
-            Base::operator++();
+            itr++;
             return *this;
         }
 
         auto operator--() {
             index--;
-            Base::operator--();
+            itr--;
             return *this;
         }
 
-        reference operator*() {
-            return make_pair(index, ref(Base::operator*()));
-        }
+        reference operator*() { return make_pair(index, ref(*itr)); }
         pointer operator->() { return make_pair(index, Base::operator->()); };
-        strong_ordering operator<=>(const iterator &rhs) const {
-            return *static_cast<const Base *>(this) <=>
-                   static_cast<const Base &>(rhs);
-        }
+        bool operator!=(const iterator &rhs) const { return itr != rhs.itr; }
+        // BUG?
+        // strong_ordering operator<=>(const iterator &rhs) const {
+        //     return itr <=> rhs.itr;
+        // }
     };
 
     auto begin() { return iterator{c.begin(), 0}; }
