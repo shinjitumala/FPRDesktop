@@ -14,6 +14,7 @@
 #include <dbg/Log.hpp>
 #include <fprd/System.hpp>
 #include <fprd/util/ostream.hpp>
+#include <fprd/util/time.hpp>
 #include <mutex>
 #include <thread>
 
@@ -62,12 +63,12 @@ class Device {
         vector<Process> procs;
     };
 
-    atomic<bool> &running;  // Set to false when stopping.
-
    private:
     /// The wrapped thing.
     nvmlDevice_t t;
 
+    /// Set to false when stopping.
+    atomic<bool> &running;
     /// The mutex for 'data'
     unique_ptr<mutex> m;
     /// The dynamically updated data.
@@ -93,11 +94,10 @@ class Device {
     }
 
     Device(atomic<bool> &running, nvmlDevice_t t)
-        : running{running},
-          t{t},
+        : t{t},
+          running{running},
           m{make_unique<mutex>()},
-          data{},
-          updater{[this]() { Device::update_loop(*this); }},
+          updater{&Device::update_loop, this},
           update_available{make_unique<atomic<bool>>(false)},
           name{[t]() -> string {
               array<char, 96> buf;
@@ -108,7 +108,12 @@ class Device {
               nvmlMemory_t m;
               check(nvmlDeviceGetMemoryInfo(t, &m));
               return static_cast<float>((float)m.total * 1e-9);
-          }()} {}
+          }()} {
+        lock_guard ig{*m};
+        data = {};
+        data = update();
+        *update_available = true;
+    }
 
     ~Device() { updater.join(); }
 
@@ -116,58 +121,56 @@ class Device {
     Device(Device &&) = default;
 
    private:
-    static void update_loop(Device &d) {
-        while (d.running) {
-            using namespace ::std::chrono;
-            const auto t{time_point<high_resolution_clock>::clock::now()};
+    void update_loop() {
+        while (running) {
+            const auto t{now()};
             {
-                lock_guard lg{*d.m};
-                d.data = update(d);
-                *d.update_available = true;
+                lock_guard lg{*m};
+                data = update();
+                *update_available = true;
             }
             this_thread::sleep_until(t + interval);
         }
     }
 
     /// Update mutable data for this device.
-    static DynamicData update(const Device &d) {
-        dbg(auto tp{dbg::now()});
+    [[nodiscard]] DynamicData update() const {
+        dbg(auto tp{now()});
 
-        const auto &t{d.t};
         DynamicData data;
-        tie(data.utilization, data.utilization_memory) = [t]() {
+        tie(data.utilization, data.utilization_memory) = [this]() {
             nvmlUtilization_t u;
             check(nvmlDeviceGetUtilizationRates(t, &u));
             return make_pair(u.gpu, u.memory);
         }();
-        data.memory = [t]() {
+        data.memory = [this]() {
             nvmlMemory_t m;
             check(nvmlDeviceGetMemoryInfo(t, &m));
             return (float)m.used * 1e-9;
         }();
-        data.fan = [t]() {
+        data.fan = [this]() {
             unsigned int s;
             check(nvmlDeviceGetFanSpeed(t, &s));
             return s;
         }();
-        data.temp = [t]() {
+        data.temp = [this]() {
             unsigned int temp;
             check(nvmlDeviceGetTemperature(t, NVML_TEMPERATURE_GPU, &temp));
             return temp;
         }();
-        data.power = [t]() {
+        data.power = [this]() {
             unsigned int p;
             check(nvmlDeviceGetPowerUsage(t, &p));
             return (float)p / 1000;
         }();
-        data.clock = [t]() {
+        data.clock = [this]() {
             unsigned int c;
             check(nvmlDeviceGetClockInfo(t, NVML_CLOCK_GRAPHICS, &c));
             return c;
         }();
-        data.procs = [t]() {
-            const auto procs{[t]() {
-                auto procs{[t]() -> vector<nvmlProcessInfo_t> {
+        data.procs = [this]() {
+            const auto procs{[this]() {
+                auto procs{[this]() -> vector<nvmlProcessInfo_t> {
                     array<nvmlProcessInfo_t, 16> i;
                     unsigned int c{i.size()};
                     check(nvmlDeviceGetGraphicsRunningProcesses_v2(t, &c,
@@ -190,7 +193,7 @@ class Device {
             }
             return ps;
         }();
-        dbg_out("GPU data: " << dbg::diff(tp) << "ms");
+        dbg_out("GPU data: " << diff(tp) << "ms");
         return data;
     }
 };
