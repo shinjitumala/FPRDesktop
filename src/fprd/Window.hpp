@@ -9,9 +9,7 @@
 #pragma once
 
 #include <fprd/Cairo.hpp>
-#include <fprd/Color.hpp>
 #include <fprd/Theme.hpp>
-#include <fprd/Utils.hpp>
 #include <fprd/Xlib.hpp>
 
 namespace fprd {

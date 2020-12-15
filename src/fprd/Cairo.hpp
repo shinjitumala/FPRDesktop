@@ -13,8 +13,7 @@
 #include <cairo/cairo.h>
 
 #include <dbg/Log.hpp>
-#include <fprd/Color.hpp>
-#include <fprd/Utils.hpp>
+#include <fprd/Types.hpp>
 #include <fprd/Xlib.hpp>
 
 namespace fprd {
