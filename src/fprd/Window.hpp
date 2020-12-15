@@ -10,9 +10,9 @@
 
 #include <fprd/Cairo.hpp>
 #include <fprd/Color.hpp>
+#include <fprd/Theme.hpp>
 #include <fprd/Utils.hpp>
 #include <fprd/Xlib.hpp>
-#include <fprd/Theme.hpp>
 
 namespace fprd {
 using namespace std;
@@ -22,11 +22,11 @@ concept Source = is_same_v<O, Color> || is_base_of_v<cairo::Pattern, O>;
 
 /// Is this design pattern bad?
 /// I feel like this is like a GOD-class.
-class FPRWindow {
+class Window {
     /// Our connection to the X11 server.
     const X11 x11;
     /// The X11 window we create.
-    const Window w;
+    const ::Window w;
 
     /// We draw to this surface.
     cairo::Surface canvas;
@@ -40,8 +40,7 @@ class FPRWindow {
     /// @param x11
     /// @param pos
     /// @param size
-    FPRWindow(string_view display_name, Position<int> pos,
-              Area<unsigned int> size)
+    Window(string_view display_name, Position<int> pos, Area<unsigned int> size)
         : x11{display_name.data()},
           w{[&x11 = this->x11, pos, size]() {
               const auto root{x11.root_window(x11.default_screen())};
@@ -99,13 +98,11 @@ class FPRWindow {
         x11.flush();
     }
 
-    auto operator->(){
-        return &canvas;
-    }
+    /// Arrow invokes the canvas.
+    /// @return auto
+    auto operator->() { return &canvas; }
 
     /// Cleanup after our selves.
-    ~FPRWindow() {
-        x11.destroy_window(w);
-    }
+    ~Window() { x11.destroy_window(w); }
 };
 };  // namespace fprd
