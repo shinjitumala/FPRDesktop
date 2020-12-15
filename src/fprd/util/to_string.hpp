@@ -27,6 +27,11 @@ auto ftos(Float f) requires is_floating_point_v<Float> {
     return oss.str();
 }
 
+/// Obtains string padded with spaces to the specified width.
+/// Spaces are added to the left of the string.
+/// @tparam w
+/// @param s
+/// @return auto
 template <size_t w>
 auto width(string&& s) {
     ostringstream oss;
