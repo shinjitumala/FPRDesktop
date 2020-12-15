@@ -307,10 +307,8 @@ class Surface {
     }
 
     /// Execute the pending draw calls.
-    /// @return auto 
-    auto flush(){
-        cairo_surface_flush(surf);
-    }
+    /// @return auto
+    auto flush() { cairo_surface_flush(surf); }
 
     /// Destructor.
     ~Surface() {
