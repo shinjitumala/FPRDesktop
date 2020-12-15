@@ -173,7 +173,9 @@ struct Position {
 /// @tparam I
 template <number I>
 struct Area {
+    /// Width
     I w;
+    /// Height
     I h;
 
     /// Default constructor.
