@@ -10,7 +10,6 @@
 #pragma once
 
 #include <compare>
-#include <fprd/Pattern.hpp>
 #include <iterator>
 #include <limits>
 #include <type_traits>
@@ -77,7 +76,7 @@ auto operator|(C &c, Enumerate /* unused */) {
     return Enumeration<C>{c};
 }
 
-/// WARNING: The left range is assumed to be shorter or equal to the right one.
+/// WARNING: The left range is assumed to be shorter or equal to the right ones.
 /// @tparam Cs
 template <class... Cs>
 struct Zipped {
@@ -125,8 +124,9 @@ struct Zipped {
                   containers)};
     }
     iterator end() {
-        return iterator{apply([](auto &&...args) { return make_tuple(args.end()...); },
-                      containers)};
+        return iterator{
+            apply([](auto &&...args) { return make_tuple(args.end()...); },
+                  containers)};
     }
 };
 
