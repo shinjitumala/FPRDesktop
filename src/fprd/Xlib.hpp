@@ -19,6 +19,8 @@
 namespace fprd {
 using namespace std;
 
+namespace x11 {
+
 /// 'XFree()' is called on the span upon distruction.
 /// @tparam V
 template <class V>
@@ -47,16 +49,47 @@ struct FreedSpan : public span<V> {
     }
 };
 
+class Connection;
+class Window;
+
+/// Closes a window.
+/// @param c
+/// @param w
+void close_window(const Connection &c, const Window &w);
+
+class Window {
+    friend Connection;
+
+    Display *d;
+    optional<::Window> id;
+
+    Window(Display *d, ::Window id) : d{d}, id{id} {}
+
+   public:
+    Window(const Window &) = delete;
+    Window(Window &&w) noexcept : d{w.d}, id{w.id} { w.id = nullopt; }
+
+    ~Window() {
+        if (id) {
+            XDestroyWindow(d, *this);
+        }
+    }
+
+    operator ::Window() const { return *id; };
+};
+
 /// A connection to a X11 server.
 /// A GOD-class? Probably bad.
-class X11 {
+class Connection {
+    friend void close_window(const Connection &c, const Window &w);
+
     /// The real type.
     Display *d;
 
    public:
     /// Open a connection to the X11 server.
     /// @param display
-    X11(string &&display) : d{XOpenDisplay(display.c_str())} {
+    Connection(string &&display) : d{XOpenDisplay(display.c_str())} {
         if (d == nullptr) {
             fatal_error("Failed to open display");
         }
@@ -64,21 +97,16 @@ class X11 {
 
     /// We are not allowed to make copies because it breaks the calss's
     /// invariant.
-    X11(const X11 &) = delete;
-    /// However, we are still allowed to move things.
-    /// @param rhs
-    /// @return X11&
-    X11 &operator=(X11 &&rhs) noexcept {
-        d = rhs.d;
-        rhs.d = nullptr;
-        return *this;
-    }
+    Connection(const Connection &) = delete;
     /// Move constructor.
     /// @param x11
-    X11(X11 &&x11) noexcept { *this = move(x11); };
+    Connection(Connection &&x11) noexcept {
+        d = x11.d;
+        x11.d = nullptr;
+    };
 
     /// Automatically close the connection.
-    ~X11() {
+    ~Connection() {
         if (d == nullptr) {
             return;
         };
@@ -108,8 +136,9 @@ class X11 {
     ///     read in the property if a partial read was performed. Returns the
     ///     data in the specified format.
     /// }
-    [[nodiscard]] auto get_window_property(Window w, Atom property, long offset,
-                                           long length, bool delete_after,
+    [[nodiscard]] auto get_window_property(const Window &w, Atom property,
+                                           long offset, long length,
+                                           bool delete_after,
                                            Atom request_type) const {
         Atom type;
         int format;
@@ -124,20 +153,20 @@ class X11 {
             FreedSpan<unsigned char>{prop, prop + nitems + bytes_after});
     }
 
-    [[nodiscard]] auto query_tree(Window w) const {
-        Window root;
-        Window parent;
-        Window *children;
+    [[nodiscard]] auto query_tree(const Window &w) const {
+        ::Window root;
+        ::Window parent;
+        ::Window *children;
         unsigned int children_count;
         if (XQueryTree(d, w, &root, &parent, &children, &children_count) == 0) {
             fatal_error("'XQueryTree' failed!");
         }
         return make_tuple(
             root, parent,
-            FreedSpan<Window>{children, children + children_count});
+            FreedSpan<::Window>{children, children + children_count});
     }
 
-    [[nodiscard]] auto get_window_attributes(Window w) const {
+    [[nodiscard]] auto get_window_attributes(const Window &w) const {
         XWindowAttributes attr;
         const auto status{XGetWindowAttributes(d, w, &attr)};
         return make_pair(status != 0, attr);
@@ -145,15 +174,15 @@ class X11 {
 
     auto flush() const { XFlush(d); }
 
-    auto destroy_window(Window w) const { XDestroyWindow(d, w); };
     [[nodiscard]] auto create_window(
-        Window parent, Position<int> pos, Area<unsigned int> size,
+        ::Window parent, Position<int> pos, Area<unsigned int> size,
         unsigned int border_w, int depth, unsigned int window_class,
         Visual *visual, unsigned long value_mask,
         const XSetWindowAttributes &attributes) const {
-        return XCreateWindow(d, parent, pos.x, pos.y, size.w, size.h, border_w,
+        return Window{
+            d, XCreateWindow(d, parent, pos.x, pos.y, size.w, size.h, border_w,
                              depth, window_class, visual, value_mask,
-                             const_cast<XSetWindowAttributes *>(&attributes));
+                             const_cast<XSetWindowAttributes *>(&attributes))};
     }
 
     [[nodiscard]] auto root_window(int screen) const {
@@ -164,9 +193,9 @@ class X11 {
         return XDefaultVisual(d, screen);
     };
 
-    auto set_WM_properties(Window w, string &&window_name, string &&icon_name,
-                           vector<string> args, optional<XSizeHints> &&sh,
-                           optional<XWMHints> &&wmh,
+    auto set_WM_properties(const Window &w, string &&window_name,
+                           string &&icon_name, vector<string> args,
+                           optional<XSizeHints> &&sh, optional<XWMHints> &&wmh,
                            optional<XClassHint> &&ch) const {
         XmbSetWMProperties(
             d, w, window_name.c_str(), icon_name.c_str(),
@@ -175,7 +204,7 @@ class X11 {
             (ch) ? &*ch : nullptr);
     }
 
-    [[nodiscard]] auto set_WM_protocols(Window w,
+    [[nodiscard]] auto set_WM_protocols(const Window &w,
                                         vector<Atom> protocols) const {
         return XSetWMProtocols(d, w,
                                (protocols.empty()) ? nullptr : protocols.data(),
@@ -187,23 +216,29 @@ class X11 {
     };
 
     template <class Element, size_t size>
-    [[nodiscard]] auto change_property(Window w, Atom property, Atom type,
-                                       int format, int mode,
+    [[nodiscard]] auto change_property(const Window &w, Atom property,
+                                       Atom type, int format, int mode,
                                        array<Element, size> data) const {
         return XChangeProperty(d, w, property, type, format, mode,
                                reinterpret_cast<unsigned char *>(data.data()),
                                size);
     }
 
-    [[nodiscard]] auto map_window(Window w) const { return XMapWindow(d, w); }
-    [[nodiscard]] auto select_input(Window w, long mask) const {
+    [[nodiscard]] auto map_window(const Window &w) const {
+        return XMapWindow(d, w);
+    }
+    [[nodiscard]] auto select_input(const Window &w, long mask) const {
         return XSelectInput(d, w, mask);
     }
 
-    [[nodiscard]] auto move_window(Window w, Position<int> pos) const {
+    [[nodiscard]] auto move_window(const Window &w, Position<int> pos) const {
         return XMoveWindow(d, w, pos.x, pos.y);
     }
 };
+
+void close_window(const Connection &c, const Window &w) {
+    XDestroyWindow(c.d, w);
+}
 
 /// For easy debugging.
 /// @param os
@@ -225,4 +260,5 @@ ostream &operator<<(ostream &os, const XWindowAttributes &attr) {
     return os;
 }
 
+};  // namespace x11
 };  // namespace fprd

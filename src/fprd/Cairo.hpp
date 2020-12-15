@@ -169,8 +169,8 @@ struct PatternLinear : public Pattern {
 
 /// Modern interface for the good old cairo library.
 class Surface {
-    cairo_surface_t *const surf;
-    cairo_t *const ctx;
+    cairo_surface_t *surf;
+    cairo_t *ctx;
 
    public:
     /// Create an empty surface with size.
@@ -182,12 +182,14 @@ class Surface {
     /// The size is set to be the exact same as the window.
     /// @param x11
     /// @param w
-    Surface(const X11 &x11, Window w)
+    Surface(const x11::Connection &x11, const x11::Window &w)
         : Surface{[&] {
               auto [status, attr]{x11.get_window_attributes(w)};
               if (!status) {
                   fatal_error("Failed to get window attributes.");
               }
+
+              dbg_out(attr.width << ", " << attr.height);
 
               return cairo_xlib_surface_create(
                   x11.display(), w, x11.default_visual(x11.default_screen()),
@@ -197,7 +199,10 @@ class Surface {
     /// No copy because it breaks the invariant.
     Surface(const Surface &) = delete;
     /// Moving is okay though.
-    Surface(Surface &&) = default;
+    Surface(Surface &&s)  noexcept : surf{s.surf}, ctx{s.ctx} {
+        s.surf = nullptr;
+        s.ctx = nullptr;
+    };
 
     /// Change the current source to a color.
     /// @param color
@@ -312,6 +317,9 @@ class Surface {
 
     /// Destructor.
     ~Surface() {
+        if (ctx == nullptr && surf == nullptr) {
+            return;
+        }
         cairo_destroy(ctx);
         cairo_surface_destroy(surf);
     }
