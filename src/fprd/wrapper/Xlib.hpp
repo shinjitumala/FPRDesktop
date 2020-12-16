@@ -19,6 +19,7 @@
 namespace fprd {
 using namespace std;
 
+/// Wrapped Xlib to modernize the interface.
 namespace x11 {
 
 /// 'XFree()' is called on the span upon distruction.

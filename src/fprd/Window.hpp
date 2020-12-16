@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include <fprd/Cairo.hpp>
 #include <fprd/Theme.hpp>
-#include <fprd/Xlib.hpp>
+#include <fprd/wrapper/Cairo.hpp>
+#include <fprd/wrapper/Xlib.hpp>
 
 namespace fprd {
 using namespace std;

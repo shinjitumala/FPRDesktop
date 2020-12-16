@@ -79,20 +79,4 @@ ostream &print_location(ostream &os, const uint line, const uint column,
 ostream &operator<<(ostream &os, const source_location loc) {
     return print_location(os, loc.line(), loc.column(), loc.file_name());
 }
-
-/// Operator overload for vector.
-// template <ranges::range R>
-//     ostream &operator<<(ostream &os, const R &vec) requires(!StdPrintable<R>)
-//     &&
-//     (!is_same_v<std::filesystem::path, R>) && (!is_fundamental_v<R>){
-//     os << "{" << nl;
-//     {
-//         dbg::IndentGuard ig{};
-//         for (auto &e : vec) {
-//             os << e << "," << nl;
-//         }
-//     }
-//     os << "}";
-//     return os;
-// }
 };  // namespace fprd

@@ -9,10 +9,13 @@
 #pragma once
 
 #include <array>
+#include <cmath>
 #include <cstddef>
-#include <fprd/Utils.hpp>
+#include <fprd/Config.hpp>
+#include <fprd/Types.hpp>
 #include <fprd/Window.hpp>
 #include <fprd/util/ranges.hpp>
+#include <ranges>
 
 namespace fprd {
 using namespace std;
@@ -56,6 +59,8 @@ struct History {
     };
 
     Data history;
+    /// offset used to animate.
+    float offset;
 
    public:
     Position<float> pos;
@@ -69,9 +74,10 @@ struct History {
     /// Draw history with new data.
     /// @param w
     /// @param new_data
-    void update(FPRWindow& w, I new_data) {
-        history.add(new_data);
-        w.set_source(bg);
+    void update(I new_data) { history.add(new_data); }
+
+    /// Draw
+    void draw(Window &w) {
         w.rectangle(pos, area);
         w.fill();
 
@@ -80,12 +86,29 @@ struct History {
         w.rectangle(pos, area);
         w.stroke();
 
-        const auto interval{area.w / (size - 1)};
+        const auto interval{area.w / (size - 2)};
+        const auto offset_increment{interval / fps};
+        offset += offset_increment;
+        offset = fmodf(offset, interval);
+
         w.set_source(fg);
-        w.move_to(pos.offset({0, area.h}));
+        /// The current data remains hidden.
+
         const auto data{history.get()};
-        for (auto [i, d] : data | enumerate) {
-            w.line_to(pos.offset({i * interval, area.h * (100 - d) / 100}));
+        {
+            const auto dif{data[1] - data[0]};
+            w.move_to(
+                pos.offset({0, area.h - (data[0] + dif * offset / interval)}));
+        }
+        for (auto [i, d] :
+             data | enumerate | ::std::ranges::views::take(size - 1)) {
+            w.line_to(
+                pos.offset({offset + i * interval, area.h * (100 - d) / 100}));
+        }
+        {
+            const auto dif{data[size - 1] - data[size - 2]};
+            w.move_to(pos.offset(
+                {area.w, area.h - (data[size - 2] + dif * offset / interval)}));
         }
         w.line_to(pos.offset({area.w, area.h}));
         w.line_to(pos.offset({0, area.h}));

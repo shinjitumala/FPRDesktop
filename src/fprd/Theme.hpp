@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <fprd/Cairo.hpp>
 #include <fprd/Config.hpp>
+#include <fprd/wrapper/Cairo.hpp>
 
 namespace fprd {
 using namespace std;

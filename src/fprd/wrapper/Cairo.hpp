@@ -14,7 +14,7 @@
 
 #include <dbg/Log.hpp>
 #include <fprd/Types.hpp>
-#include <fprd/Xlib.hpp>
+#include <fprd/wrapper/Xlib.hpp>
 
 namespace fprd {
 using namespace ::std;
