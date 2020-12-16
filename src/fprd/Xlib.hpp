@@ -50,38 +50,45 @@ struct FreedSpan : public span<V> {
 };
 
 class Connection;
-class Window;
 
-/// Closes a window.
-/// @param c
-/// @param w
-void close_window(const Connection &c, const Window &w);
-
+/// Represents a created window.
+///
+/// WARNING: The user is responsible for ensuring that Connection lives longer
+/// than the Window itself.
 class Window {
     friend Connection;
 
-    Display *d;
+    /// The connetion that created this window.
+    const Connection &c;
+    /// Must be optional to allow moving.
     optional<::Window> id;
 
-    Window(Display *d, ::Window id) : d{d}, id{id} {}
+    /// Window can only be created by a connection.
+    /// @param c
+    /// @param id
+    Window(const Connection &c, ::Window id) : c{c}, id{id} {}
 
    public:
+    /// Copying is disallowed.
     Window(const Window &) = delete;
-    Window(Window &&w) noexcept : d{w.d}, id{w.id} { w.id = nullopt; }
+    /// Moving is allowed however.
+    /// @param w
+    Window(Window &&w) noexcept : c{w.c}, id{w.id} { w.id = nullopt; }
 
-    ~Window() {
-        if (id) {
-            XDestroyWindow(d, *this);
-        }
-    }
+    /// Destructor.
+    ~Window();
 
-    operator ::Window() const { return *id; };
+    /// Allow explicit conversion to XID.
+    explicit operator ::Window() const { return *id; };
 };
 
 /// A connection to a X11 server.
-/// A GOD-class? Probably bad.
+/// Why did they name it "Display" anyway? The name is VERY confusing because
+/// one could misunderstand that this represents a physical display.
+/// WARNING: All the functions must be called from the thread that created the
+/// Connection. Otherwise, X11 will exit with an error.
 class Connection {
-    friend void close_window(const Connection &c, const Window &w);
+    friend Window;
 
     /// The real type.
     Display *d;
@@ -145,9 +152,9 @@ class Connection {
         unsigned long nitems;
         unsigned long bytes_after;
         unsigned char *prop;
-        XGetWindowProperty(d, w, property, offset, length,
-                           static_cast<int>(delete_after), request_type, &type,
-                           &format, &nitems, &bytes_after, &prop);
+        XGetWindowProperty(d, static_cast<::Window>(w), property, offset,
+                           length, static_cast<int>(delete_after), request_type,
+                           &type, &format, &nitems, &bytes_after, &prop);
         return make_tuple(
             type, format,
             FreedSpan<unsigned char>{prop, prop + nitems + bytes_after});
@@ -158,7 +165,8 @@ class Connection {
         ::Window parent;
         ::Window *children;
         unsigned int children_count;
-        if (XQueryTree(d, w, &root, &parent, &children, &children_count) == 0) {
+        if (XQueryTree(d, static_cast<::Window>(w), &root, &parent, &children,
+                       &children_count) == 0) {
             fatal_error("'XQueryTree' failed!");
         }
         return make_tuple(
@@ -168,7 +176,8 @@ class Connection {
 
     [[nodiscard]] auto get_window_attributes(const Window &w) const {
         XWindowAttributes attr;
-        const auto status{XGetWindowAttributes(d, w, &attr)};
+        const auto status{
+            XGetWindowAttributes(d, static_cast<::Window>(w), &attr)};
         return make_pair(status != 0, attr);
     }
 
@@ -180,9 +189,10 @@ class Connection {
         Visual *visual, unsigned long value_mask,
         const XSetWindowAttributes &attributes) const {
         return Window{
-            d, XCreateWindow(d, parent, pos.x, pos.y, size.w, size.h, border_w,
-                             depth, window_class, visual, value_mask,
-                             const_cast<XSetWindowAttributes *>(&attributes))};
+            *this,
+            XCreateWindow(d, parent, pos.x, pos.y, size.w, size.h, border_w,
+                          depth, window_class, visual, value_mask,
+                          const_cast<XSetWindowAttributes *>(&attributes))};
     }
 
     [[nodiscard]] auto root_window(int screen) const {
@@ -198,7 +208,7 @@ class Connection {
                            optional<XSizeHints> &&sh, optional<XWMHints> &&wmh,
                            optional<XClassHint> &&ch) const {
         XmbSetWMProperties(
-            d, w, window_name.c_str(), icon_name.c_str(),
+            d, static_cast<::Window>(w), window_name.c_str(), icon_name.c_str(),
             (!args.empty()) ? reinterpret_cast<char **>(args.data()) : nullptr,
             args.size(), (sh) ? &*sh : nullptr, (wmh) ? &*wmh : nullptr,
             (ch) ? &*ch : nullptr);
@@ -206,7 +216,7 @@ class Connection {
 
     [[nodiscard]] auto set_WM_protocols(const Window &w,
                                         vector<Atom> protocols) const {
-        return XSetWMProtocols(d, w,
+        return XSetWMProtocols(d, static_cast<::Window>(w),
                                (protocols.empty()) ? nullptr : protocols.data(),
                                protocols.size());
     }
@@ -219,25 +229,27 @@ class Connection {
     [[nodiscard]] auto change_property(const Window &w, Atom property,
                                        Atom type, int format, int mode,
                                        array<Element, size> data) const {
-        return XChangeProperty(d, w, property, type, format, mode,
-                               reinterpret_cast<unsigned char *>(data.data()),
-                               size);
+        return XChangeProperty(
+            d, static_cast<::Window>(w), property, type, format, mode,
+            reinterpret_cast<unsigned char *>(data.data()), size);
     }
 
     [[nodiscard]] auto map_window(const Window &w) const {
-        return XMapWindow(d, w);
+        return XMapWindow(d, static_cast<::Window>(w));
     }
     [[nodiscard]] auto select_input(const Window &w, long mask) const {
-        return XSelectInput(d, w, mask);
+        return XSelectInput(d, static_cast<::Window>(w), mask);
     }
 
     [[nodiscard]] auto move_window(const Window &w, Position<int> pos) const {
-        return XMoveWindow(d, w, pos.x, pos.y);
+        return XMoveWindow(d, static_cast<::Window>(w), pos.x, pos.y);
     }
 };
 
-void close_window(const Connection &c, const Window &w) {
-    XDestroyWindow(c.d, w);
+Window::~Window() {
+    if (id) {
+        XDestroyWindow(c.d, *id);
+    }
 }
 
 /// For easy debugging.

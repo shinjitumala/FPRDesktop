@@ -141,7 +141,7 @@ class Pattern {
     /// No copy.
     Pattern(const Pattern &) = delete;
 
-    /// Allow explicit casts.
+    /// Allow implicit casts.
     /// @return decltype(p)
     operator decltype(p)() const { return p; };
 
@@ -166,6 +166,9 @@ struct PatternLinear : public Pattern {
         }
     }
 };
+
+template <class O>
+concept Source = is_same_v<O, Color> || is_base_of_v<cairo::Pattern, O>;
 
 /// Modern interface for the good old cairo library.
 class Surface {
@@ -192,14 +195,15 @@ class Surface {
               dbg_out(attr.width << ", " << attr.height);
 
               return cairo_xlib_surface_create(
-                  x11.display(), w, x11.default_visual(x11.default_screen()),
-                  attr.width, attr.height);
+                  x11.display(), static_cast<::Window>(w),
+                  x11.default_visual(x11.default_screen()), attr.width,
+                  attr.height);
           }()} {}
 
     /// No copy because it breaks the invariant.
     Surface(const Surface &) = delete;
     /// Moving is okay though.
-    Surface(Surface &&s)  noexcept : surf{s.surf}, ctx{s.ctx} {
+    Surface(Surface &&s) noexcept : surf{s.surf}, ctx{s.ctx} {
         s.surf = nullptr;
         s.ctx = nullptr;
     };
