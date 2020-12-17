@@ -12,11 +12,11 @@
 #include <compare>
 #include <iterator>
 #include <limits>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
 namespace fprd {
-
 using namespace std;
 
 struct Enumerate {};
@@ -24,11 +24,12 @@ static constexpr Enumerate enumerate{};
 
 template <class C>
 struct Enumeration {
-    C &c;
+    C c;
 
     using BaseIterator =
-        conditional_t<is_const_v<C>, typename C::const_iterator,
-                      typename C::iterator>;
+        conditional_t<is_const_v<remove_reference_t<C>>,
+                      typename remove_cvref_t<C>::const_iterator,
+                      typename remove_cvref_t<C>::iterator>;
     struct iterator {
        private:
         using Base = BaseIterator;
@@ -48,13 +49,13 @@ struct Enumeration {
 
         auto operator++() {
             index++;
-            itr++;
+            ++itr;
             return *this;
         }
 
         auto operator--() {
             index--;
-            itr--;
+            --itr;
             return *this;
         }
 
@@ -72,7 +73,7 @@ struct Enumeration {
 };
 
 template <class C>
-auto operator|(C &c, Enumerate /* unused */) {
+auto operator|(C &&c, Enumerate /* unused */) {
     return Enumeration<C>{c};
 }
 
@@ -98,18 +99,18 @@ struct Zipped {
         using reference = value_type;
 
         auto operator++() {
-            apply([](auto &...args) { (args++, ...); }, itrs);
+            std::apply([](auto &...args) { (args++, ...); }, itrs);
             return *this;
         }
 
         auto operator--() {
-            apply([](auto &...args) { (args--, ...); }, itrs);
+            std::apply([](auto &...args) { (args--, ...); }, itrs);
             return *this;
         }
 
         reference operator*() {
-            return apply([](auto... args) { return make_tuple(ref(*args)...); },
-                         itrs);
+            return std::apply(
+                [](auto... args) { return make_tuple(ref(*args)...); }, itrs);
         }
         bool operator!=(const iterator &rhs) const {
             return get<0>(itrs) != get<0>(rhs.itrs);
@@ -119,14 +120,14 @@ struct Zipped {
     };
 
     iterator begin() {
-        return iterator{
-            apply([](auto &&...args) { return make_tuple(args.begin()...); },
-                  containers)};
+        return iterator{std::apply(
+            [](auto &&...args) { return make_tuple(args.begin()...); },
+            containers)};
     }
     iterator end() {
         return iterator{
-            apply([](auto &&...args) { return make_tuple(args.end()...); },
-                  containers)};
+            std::apply([](auto &&...args) { return make_tuple(args.end()...); },
+                       containers)};
     }
 };
 
