@@ -24,7 +24,7 @@ class AnimatedArcBar : ArcBar<d, Border, Empty, Filled> {
 
    public:
     AnimatedArcBar() = default;
-    AnimatedArcBar(const AnimatedArcBar&)= delete;
+    AnimatedArcBar(const AnimatedArcBar&) = delete;
     AnimatedArcBar(Base arc_bar) : Base{arc_bar} {}
 
     void update(float target_percentage) {
