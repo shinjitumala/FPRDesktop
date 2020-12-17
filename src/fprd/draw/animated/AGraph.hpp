@@ -57,6 +57,7 @@ class AnimatedGraph : public Graph<size, Border, FG, BG> {
 
    public:
     AnimatedGraph(Base graph) : Base{graph}, current{} {};
+    AnimatedGraph(AnimatedGraph&) = delete;
 
     void update(float new_value) { current.add(new_value); }
 

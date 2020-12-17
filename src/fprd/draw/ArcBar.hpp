@@ -34,9 +34,6 @@ struct ArcBarBase {
 
     float border_width;
     float bar_width;
-
-    /// How much of the bar should be filled in percent.
-    float fill;
 };
 
 /// The way The bar is drawn changes depending on the direction.
@@ -53,7 +50,7 @@ struct ArcBar : public ArcBarBase {
 
     /// Draw the ArcBar with its current data.
     /// @param w
-    void draw(Window &w) {
+    void draw(Window &w, float filled_percent) {
         w.set_line_width(bar_width - border_width * 2);
         w.arc(center, radious - bar_width / 2, start, start);
         w.fill();
@@ -62,7 +59,7 @@ struct ArcBar : public ArcBarBase {
         w.stroke();
         w.set_source(filled);
         arc<true>(w, center, radious - bar_width / 2, start,
-                  start + (end - start) * fill / 100);
+                  start + (end - start) * filled_percent / 100);
         w.stroke();
         w.set_source(border);
         w.set_line_width(border_width);

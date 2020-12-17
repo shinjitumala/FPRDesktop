@@ -19,11 +19,13 @@ class AnimatedBar : public Bar<o, d, Frame, Empty, Filled> {
     using Base = Bar<o, d, Frame, Empty, Filled>;
     using Base::draw;
 
-    float current;    // The currently drawn percentage.
-    float increment;  // The increment per draw call.
+    float current{0};    // The currently drawn percentage.
+    float increment{0};  // The increment per draw call.
 
    public:
-    AnimatedBar(Base b) : Base{b}, current{0}, increment{0} {};
+    AnimatedBar() = default;
+    AnimatedBar(AnimatedBar&) = delete;
+    AnimatedBar(Base b) : Base{b} {};
 
     void update(float target_percentage) {
         increment = (target_percentage - current) / fps;
@@ -35,5 +37,7 @@ class AnimatedBar : public Bar<o, d, Frame, Empty, Filled> {
     }
 
     [[nodiscard]] float current_percentage() const { return current; }
+
+    auto operator->() { return this; };
 };
 };  // namespace fprd

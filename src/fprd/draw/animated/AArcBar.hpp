@@ -19,11 +19,13 @@ class AnimatedArcBar : ArcBar<d, Border, Empty, Filled> {
     using Base = ArcBar<d, Border, Empty, Filled>;
     using Base::draw;
 
-    float current;    // The currently drawn percentage.
-    float increment;  // The increment per draw call.
+    float current{0};    // The currently drawn percentage.
+    float increment{0};  // The increment per draw call.
 
    public:
-    AnimatedArcBar(Base arc_bar) : Base{arc_bar}, current{0}, increment{0} {}
+    AnimatedArcBar() = default;
+    AnimatedArcBar(const AnimatedArcBar&)= delete;
+    AnimatedArcBar(Base arc_bar) : Base{arc_bar} {}
 
     void update(float target_percentage) {
         increment = (target_percentage - current) / fps;
