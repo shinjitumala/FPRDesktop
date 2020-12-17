@@ -12,7 +12,7 @@
 
 #include <condition_variable>
 #include <dbg/Log.hpp>
-#include <fprd/System.hpp>
+#include <fprd/probes/UNIX.hpp>
 #include <fprd/util/ostream.hpp>
 #include <fprd/util/time.hpp>
 #include <mutex>
@@ -67,38 +67,12 @@ class Device {
     /// The wrapped thing.
     nvmlDevice_t t;
 
-    /// Set to false when stopping.
-    atomic<bool> &running;
-    /// The mutex for 'data'
-    unique_ptr<mutex> m;
-    /// The dynamically updated data.
-    DynamicData data;
-    /// The data update thread.
-    thread updater;
-    /// Set to true when there is new data available.
-    unique_ptr<atomic<bool>> update_available;
-
    public:
     const string name;         // Product name
     const float memory_total;  // GB
 
-    /// Checks if there is new data and consumes it if there is one.
-    /// @return auto
-    [[nodiscard]] auto get_dynamic_data() {
-        if (*update_available) {
-            *update_available = false;
-            lock_guard lg{*m};
-            return make_pair(true, data);
-        }
-        return make_pair(false, DynamicData{});
-    }
-
-    Device(atomic<bool> &running, nvmlDevice_t t)
+    Device(nvmlDevice_t t)
         : t{t},
-          running{running},
-          m{make_unique<mutex>()},
-          updater{&Device::update_loop, this},
-          update_available{make_unique<atomic<bool>>(false)},
           name{[t]() -> string {
               array<char, 96> buf;
               nvmlDeviceGetName(t, buf.data(), buf.size());
@@ -108,33 +82,13 @@ class Device {
               nvmlMemory_t m;
               check(nvmlDeviceGetMemoryInfo(t, &m));
               return static_cast<float>((float)m.total * 1e-9);
-          }()} {
-        lock_guard ig{*m};
-        data = {};
-        data = update();
-        *update_available = true;
-    }
-
-    ~Device() { updater.join(); }
+          }()} {}
 
     Device(const Device &) = delete;
     Device(Device &&) = default;
 
-   private:
-    void update_loop() {
-        while (running) {
-            const auto t{now()};
-            {
-                lock_guard lg{*m};
-                data = update();
-                *update_available = true;
-            }
-            this_thread::sleep_until(t + interval);
-        }
-    }
-
     /// Update mutable data for this device.
-    [[nodiscard]] DynamicData update() const {
+    [[nodiscard]] DynamicData probe_data() const {
         dbg(auto tp{now()});
 
         DynamicData data;
@@ -180,7 +134,7 @@ class Device {
                         return l.usedGpuMemory > r.usedGpuMemory;
                     });
                     if (c > max_procs) {
-                        return {i.begin(), i.begin() + 5};
+                        return {i.begin(), i.begin() + max_procs};
                     }
                     return {i.begin(), i.begin() + c};
                 }()};
@@ -212,14 +166,14 @@ struct NVML {
     ~NVML() { check(nvmlShutdown()); }
     NVML(const NVML &) = delete;
 
-    [[nodiscard]] auto get_devices(atomic<bool> &run) const {
+    [[nodiscard]] auto get_devices() const {
         const auto c{get_device_count()};
         vector<Device> devs;
         devs.reserve(c);
         for (auto i{0U}; i < c; i++) {
             nvmlDevice_t d;
             check(nvmlDeviceGetHandleByIndex_v2(i, &d));
-            devs.emplace_back(run, d);
+            devs.emplace_back(d);
         }
         return devs;
     }
