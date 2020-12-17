@@ -149,6 +149,13 @@ struct Position {
     /// @return constexpr Position
     constexpr Position offset(Position rhs) const { return *this + rhs; }
 
+    /// Scale the area.
+    /// @param scale
+    /// @return constexpr Position
+    constexpr Position scale(pair<float, float> scale) const {
+        return {x * scale.first, y * scale.second};
+    }
+
     /// Implicit conversions between Position types.
     /// @tparam S
     /// @return Position<S>
