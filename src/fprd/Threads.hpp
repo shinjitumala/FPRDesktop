@@ -31,7 +31,7 @@ concept drawable = requires(D &d, const D &cd, Window &w,
     ->same_as<void>;
     { d.draw(w, declval<bool>()) }
     ->same_as<void>;
-    { D::get_data() }
+    { cd.get_data() }
     ->same_as<typename D::DynamicData>;
     { cd.create_window() }
     ->same_as<Window>;
@@ -54,10 +54,10 @@ class Threads {
     Threads(atomic<bool> &running, D &d)
         : m{},
           data{[&running, &mtx = this->m, &buf = this->buf,
-                interval = D::probe_interval] {
+                interval = D::probe_interval, &d] {
               while (running) {
                   const auto tp{now() + interval};
-                  const auto data{D::get_data()};
+                  const auto data{d.get_data()};
                   {
                       lock_guard lg{mtx};
                       buf = data;
@@ -83,6 +83,7 @@ class Threads {
 
                   d.draw(w, has_new_data);
                   w.flush();
+                  w.frame_counter = frame_counter;
 
                   if (now() >= tp) {
                       cerr << "Frame is late by "

@@ -34,6 +34,8 @@ class Window : public cairo::Surface {
     using Base::flush;
 
    public:
+    unsigned char frame_counter;
+
     /// Create a new window.
     /// @param x11
     /// @param pos
