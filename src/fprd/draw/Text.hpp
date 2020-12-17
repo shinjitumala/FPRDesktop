@@ -90,7 +90,7 @@ struct TextCleared : public TextBase {
 /// A text must be drawable.
 /// @tparam T
 template <class T>
-concept text = requires(const T &t, const T &ct) {
+concept text = requires(T &t) {
     t.draw(declval<Window &>(), declval<string_view>());
 };
 

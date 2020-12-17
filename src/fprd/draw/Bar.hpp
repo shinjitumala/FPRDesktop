@@ -10,20 +10,30 @@
 
 #include <fprd/Theme.hpp>
 #include <fprd/Window.hpp>
-#include <fprd/values/animated.hpp>
 
 namespace fprd {
 
+/// The orientation of the fill.
 enum class Orientation {
     horizontal,
     vertical,
 };
 
+/// The direction of the fill.
+/// For example, if Orientation is horizontal,
+/// choosing positive will result in the bar being filled from left to right
+/// (which is in the positive direction of the X-axis).
 enum class Direction {
     positive,
     negative,
 };
 
+/// A bar filled with a source.
+/// @tparam o
+/// @tparam d
+/// @tparam Frame
+/// @tparam Empty
+/// @tparam Filled
 template <Orientation o, Direction d, cairo::source Frame = Color,
           cairo::source Empty = Color, cairo::source Filled = Color>
 struct Bar {
@@ -35,6 +45,9 @@ struct Bar {
     Empty empty;
     Filled filled;
 
+    /// Draw the bar filled with a percentage.
+    /// @param w
+    /// @param percent
     void draw(Window &w, float percent) const {
         /// Background
         w.rectangle(pos, area);
