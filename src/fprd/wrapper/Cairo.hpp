@@ -192,8 +192,6 @@ class Surface {
                   fatal_error("Failed to get window attributes.");
               }
 
-              dbg_out(attr.width << ", " << attr.height);
-
               return cairo_xlib_surface_create(
                   x11.display(), static_cast<::Window>(w),
                   x11.default_visual(x11.default_screen()), attr.width,
