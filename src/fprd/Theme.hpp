@@ -31,9 +31,9 @@ const cairo::Font bold{"Noto Sans Mono", CAIRO_FONT_SLANT_NORMAL,
                        CAIRO_FONT_WEIGHT_BOLD};
 
 /// Some preset sizes.
-constexpr auto large_h{28};
-constexpr auto medium_h{20};
-constexpr auto small_h{16};
+constexpr auto large_h{20};
+constexpr auto medium_h{12};
+constexpr auto small_h{8};
 constexpr Area<float> large_area(float w) { return {w, large_h}; };
 constexpr Area<float> medium_area(float w) { return {w, medium_h}; };
 constexpr Area<float> small_area(float w) { return {w, small_h}; };
