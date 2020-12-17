@@ -25,7 +25,7 @@ struct TextBase {
     Position<float> pos;
     Area<float> area;
 
-    template <VerticalAlign V, cairo::Source FG = Color>
+    template <VerticalAlign V, cairo::source FG = Color>
     void draw_text(Window &w, const FG &fg, string_view s) const {
         const auto font_size{area.h};
         w.set_font_size(font_size);
@@ -60,7 +60,7 @@ struct TextBase {
 /// A text that does not move or change color.
 /// @tparam V
 /// @tparam FG
-template <VerticalAlign V, cairo::Source FG = Color>
+template <VerticalAlign V, cairo::source FG = Color>
 struct Text : public TextBase {
     FG fg;
 
@@ -74,7 +74,7 @@ struct Text : public TextBase {
 /// @tparam V
 /// @tparam FG
 /// @tparam BG
-template <VerticalAlign V, cairo::Source FG = Color, cairo::Source BG = Color>
+template <VerticalAlign V, cairo::source FG = Color, cairo::source BG = Color>
 struct TextCleared : public TextBase {
     FG fg;
     BG bg;

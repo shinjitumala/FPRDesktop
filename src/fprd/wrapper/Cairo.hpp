@@ -168,7 +168,7 @@ struct PatternLinear : public Pattern {
 };
 
 template <class O>
-concept Source = is_same_v<O, Color> || is_base_of_v<cairo::Pattern, O>;
+concept source = is_same_v<O, Color> || is_base_of_v<cairo::Pattern, O>;
 
 /// Modern interface for the good old cairo library.
 class Surface {

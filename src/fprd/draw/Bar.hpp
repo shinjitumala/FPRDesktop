@@ -24,8 +24,8 @@ enum class Direction {
     negative,
 };
 
-template <Orientation o, Direction d, cairo::Source Frame = Color,
-          cairo::Source Empty = Color, cairo::Source Filled = Color>
+template <Orientation o, Direction d, cairo::source Frame = Color,
+          cairo::source Empty = Color, cairo::source Filled = Color>
 struct Bar {
     Position<float> pos;
     Area<float> area;

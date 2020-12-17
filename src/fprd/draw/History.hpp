@@ -21,7 +21,8 @@ namespace fprd {
 using namespace std;
 
 /// Draw data with history.
-template <number I, Source Border = Color, Source FG = Color, Source BG = Color>
+template <number I, cairo::source Border = Color, cairo::source FG = Color,
+          cairo::source BG = Color>
 struct History {
     /// The size of our history.
     inline static constexpr auto size{40};

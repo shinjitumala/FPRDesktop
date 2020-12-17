@@ -44,8 +44,8 @@ struct ArcBarBase {
 /// @tparam Border
 /// @tparam Empty
 /// @tparam Filled
-template <ArcBarDirection d, cairo::Source Border = Color,
-          cairo::Source Empty = Color, cairo::Source Filled = Color>
+template <ArcBarDirection d, cairo::source Border = Color,
+          cairo::source Empty = Color, cairo::source Filled = Color>
 struct ArcBar : public ArcBarBase {
     Border border;
     Empty empty;
