@@ -38,4 +38,12 @@ auto width(string&& s) {
     oss << setfill(' ') << setw(w) << s;
     return oss.str();
 }
+
+template <size_t maxw>
+string truncs(string_view s) {
+    if (s.size() < maxw) {
+        return string{s};
+    }
+    return string{s.substr(0, maxw - 3)} + "...";
+};
 };  // namespace fprd
