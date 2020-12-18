@@ -62,7 +62,8 @@ class Device {
         bool operator==(const Process &rhs) const { return t.pid == rhs.t.pid; }
 
         ostream &print(ostream &os) const {
-            os << setfill(' ') << setw(name_size) << left << truncs<name_size>(name);
+            os << setfill(' ') << setw(name_size) << left
+               << truncs<name_size>(name);
             os << setfill(' ') << setw(pid_size) << right << t.pid;
             os << setfill(' ') << setw(memory_size) << right
                << (ftos<0>(t.usedGpuMemory / 1000000.0F) + "MB");
