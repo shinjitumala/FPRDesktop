@@ -139,6 +139,14 @@ struct Position {
     /// @param a
     /// @return constexpr Position
     constexpr Position stack_bottom(Area<I> a) const { return {x, y + a.h}; }
+    /// Obtain the position after stacking Area 'a' to the left.
+    /// @param a
+    /// @return constexpr Position
+    constexpr Position stack_left(Area<I> a) const { return {x - a.w, y}; }
+    /// Obtain the position after stacking Area 'a' above.
+    /// @param a
+    /// @return constexpr Position
+    constexpr Position stack_top(Area<I> a) const { return {x, y - a.h}; }
     /// Obtain the position after stacking Area 'a' to both right and down.
     /// @param a
     /// @return constexpr Position
@@ -147,7 +155,10 @@ struct Position {
     /// Becase we can't type deduct with 'operator+'?
     /// @param rhs
     /// @return constexpr Position
-    constexpr Position offset(Position rhs) const { return *this + rhs; }
+    template <number S = I>
+    constexpr Position offset(Position<S> rhs) const {
+        return *this + rhs;
+    }
 
     /// Scale the area.
     /// @param scale
