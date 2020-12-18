@@ -24,7 +24,8 @@ class AnimatedBar : public Bar<o, d, Frame, Empty, Filled> {
 
    public:
     AnimatedBar() = default;
-    AnimatedBar(AnimatedBar&) = delete;
+    AnimatedBar(const AnimatedBar&) = delete;
+    AnimatedBar(AnimatedBar&&) noexcept = default;
     AnimatedBar(Base b) : Base{b} {};
 
     void update(float target_percentage) {
