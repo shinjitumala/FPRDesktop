@@ -15,6 +15,7 @@
 #include <fprd/probes/UNIX.hpp>
 #include <fprd/util/ostream.hpp>
 #include <fprd/util/time.hpp>
+#include <fprd/util/to_string.hpp>
 #include <mutex>
 #include <thread>
 
@@ -34,18 +35,41 @@ void check(nvmlReturn_t ret, source_location l = source_location::current()) {
 struct NVML;
 
 /// A GPU device
+/// @tparam max_procs Maximum number of processes shown.
+template <u_char max_procs>
 class Device {
     friend NVML;
 
+   public:
     /// Our representation of a process.
     struct Process {
         string name;
         nvmlProcessInfo_t t;
+
+        static constexpr auto name_size{32};
+        static constexpr auto pid_size{7};
+        static constexpr auto memory_size{8};
+
+        static string header() {
+            ostringstream os;
+            os << setfill(' ') << setw(name_size) << left << "Name";
+            os << setfill(' ') << setw(pid_size) << right << "PID";
+            os << setfill(' ') << setw(memory_size) << right << "Memory";
+
+            return os.str();
+        };
+
+        bool operator==(const Process &rhs) const { return t.pid == rhs.t.pid; }
+
+        ostream &print(ostream &os) const {
+            os << setfill(' ') << setw(name_size) << left << truncs<name_size>(name);
+            os << setfill(' ') << setw(pid_size) << right << t.pid;
+            os << setfill(' ') << setw(memory_size) << right
+               << (ftos<0>(t.usedGpuMemory / 1000000.0F) + "MB");
+            return os;
+        };
     };
 
-   public:
-    /// Maximum number of processes shown.
-    inline static constexpr u_char max_procs{8};
     /// Data update interval.
     inline static constexpr auto interval{1s};
 
@@ -85,7 +109,7 @@ class Device {
           }()} {}
 
     Device(const Device &) = delete;
-    Device(Device &&) = default;
+    Device(Device &&) noexcept = default;
 
     /// Update mutable data for this device.
     [[nodiscard]] DynamicData probe_data() const {
@@ -166,9 +190,10 @@ struct NVML {
     ~NVML() { check(nvmlShutdown()); }
     NVML(const NVML &) = delete;
 
+    template <u_char max_procs>
     [[nodiscard]] auto get_devices() const {
         const auto c{get_device_count()};
-        vector<Device> devs;
+        vector<Device<max_procs>> devs;
         devs.reserve(c);
         for (auto i{0U}; i < c; i++) {
             nvmlDevice_t d;
