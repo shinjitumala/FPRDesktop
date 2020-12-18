@@ -33,7 +33,7 @@ concept drawable = requires(D &d, const D &cd, Window &w,
     ->same_as<void>;
     { cd.get_data() }
     ->same_as<typename D::DynamicData>;
-    { cd.create_window() }
+    { d.create_window() }
     ->same_as<Window>;
 }
 &&is_same_v<decltype(D::probe_interval), const seconds>;
