@@ -21,7 +21,7 @@ enum class VerticalAlign : u_char {
 
 /// Base class for drawing text.
 struct TextBase {
-    const cairo::Font &font;
+    const cairo::Font *font;
     Position<float> pos;
     Area<float> area;
 
@@ -29,7 +29,7 @@ struct TextBase {
     void draw_text(Window &w, const FG &fg, string_view s) const {
         const auto font_size{area.h};
         w.set_font_size(font_size);
-        w.set_font(font);
+        w.set_font(*font);
         w.set_source(fg);
         w.move_to([this, &w, font_size, s]() {
             const auto te{w.get_text_extent(s)};
@@ -38,19 +38,17 @@ struct TextBase {
                         << area << ", Extent: {" << te.width << ", "
                         << te.height << "}");
             });
+            const auto height{area.h};
+            const auto width{te.x_advance};
             if constexpr (V == VerticalAlign::left) {
-                return pos.offset({0, font_size});
+                return pos.offset<double>({0, height});
             }
             if constexpr (V == VerticalAlign::center) {
-                return pos.offset(
-                    {static_cast<float>(area.w / 2 - te.width / 2 -
-                                        te.x_bearing),
-                     font_size});
+                return pos.offset<double>(
+                    {area.w / 2 - width / 2 - te.x_bearing, height});
             }
             if constexpr (V == VerticalAlign::right) {
-                return pos.offset(
-                    {static_cast<float>(area.w - te.width - te.x_bearing),
-                     font_size});
+                return pos.offset<double>({area.w - width, height});
             }
         }());
         w.print_text(s);
