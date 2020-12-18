@@ -107,7 +107,6 @@ class AnimatedList {
             i.drawer.pos.y += i.vertical_motion;
             i.drawer.fg.a += i.fading;
             i.drawer.draw(w, i.text);
-            dbg_out(i.drawer.pos);
         }
     }
 
