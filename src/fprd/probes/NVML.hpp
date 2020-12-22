@@ -71,9 +71,6 @@ class Device {
         };
     };
 
-    /// Data update interval.
-    inline static constexpr auto interval{1s};
-
     struct DynamicData {
         u_char utilization;         // %
         float memory;               // GB
