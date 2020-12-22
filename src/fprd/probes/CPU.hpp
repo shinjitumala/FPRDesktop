@@ -14,7 +14,7 @@
 #include <dbg/Log.hpp>
 #include <dbg/Logger.hpp>
 #include <filesystem>
-#include <fprd/unix/cpuinfo.hpp>
+#include <fprd/util/istream.hpp>
 #include <fprd/util/ranges.hpp>
 #include <fprd/util/time.hpp>
 #include <fprd/util/to_string.hpp>
@@ -25,65 +25,130 @@ namespace fprd {
 using namespace ::std;
 using namespace ::std::filesystem;
 
-namespace query {
+namespace probe {
+
+/// Utility function for parsing values from UNIX human-readable files.
+/// @param is
+/// @return auto
+auto getval(istream& is) {
+    const auto l{getline(is)};
+    const auto itr{l.find(':')};
+    return l.substr(itr + 1, numeric_limits<size_t>::max());
+}
+
+/// Get basic CPU info.
+/// @return auto CPU name and thread count.
+auto get_cpu_info() {
+    ifstream is{"/proc/cpuinfo"};
+    skip_lines(is, 4);
+    const auto name{getval(is)};
+    skip_lines(is, 5);
+    const auto thread_count{stoul(getval(is))};
+    return make_pair(name, thread_count);
+}
+
+/// UsageInfo for the entire CPU.
+struct CPUUsage {
+    /// WARNING: This usage info is the value "since the beginning".
+    struct Usage {
+        ulong total;
+        ulong idle;
+    };
+
+    Usage overall;
+    vector<Usage> threads;
+};
+
+/// Obtains raw CPU usage info.
+/// The raw CPU usage info shows the LIFETIME usage of the CPU.
+/// This means that to compute the CURRENT usage, we must compute the delta.
+/// This function obtains the LIFETIME usage.
+/// @param thread_count
+/// @return CPUUsageInfo
+auto get_cpu_lifetime_usage(size_t thread_count) -> CPUUsage {
+    ifstream is{"/proc/stat"};
+
+    /// @return auto idle and total time.
+    auto parse_line{[&]() -> CPUUsage::Usage {
+        skip_to(is, ' ');  // Skip CPU name.
+        ulong total{0};
+        ulong idle{0};
+        for (auto i{0}; i < 10; i++) {
+            const auto l{getulong(is)};
+            if (i == 3) {
+                // The 3rd number is the total idle time.
+                idle += l;
+            }
+            total += l;
+        }
+        skip_lines(is, 1);  // Skip the rest of the current line.
+        return {total, idle};
+    }};
+
+    // First line is the average of all threads (cores).
+    const auto overall{parse_line()};
+    // Beyond the first line is all the individual threads (cores).
+    const auto threads{[&] {
+        vector<CPUUsage::Usage> r;
+        for (auto i{0}; i < r.size(); i++) {
+            r[i] = parse_line();
+        }
+        return r;
+    }()};
+
+    return {overall, threads};
+}
+
+/// Get the current frequencies of the entire CPU.
+/// @tparam thread_count
+/// @return auto Frequency of each thread in MHz
+auto get_cpu_freqs(size_t thread_count) {
+    ifstream is{"/proc/cpuinfo"};
+    skip_lines(is, 7);  // Skip first two lines.
+    vector<float> freqs;
+    for (auto& freq : freqs) {
+        freq = stof(getval(is));
+        skip_lines(is, 27);
+    }
+    return freqs;
+}
 
 /// For querying CPU related stuff.
+/// @tparam max_procs Maximum number of processes shown.
+template <size_t max_procs>
 class CPU {
-   public:
-    inline static const u_char max_procs{16};
-    /// Data update interval.
-    inline static constexpr auto interval{1s};
-    /// The hard-coded thread count
-    inline static constexpr auto thread_count{16};
-
-   private:
+    /// All information about a thread at a certain moment.
     struct ThreadStatus {
-        UsageInfo usage_value{};
         float usage;  // %
         float freq;   // GHz
-
-        auto update(const ThreadStatus& old, UsageInfo new_values) {
-            const auto d_total{new_values.total - old.usage_value.total};
-            const auto d_idle{new_values.idle - old.usage_value.idle};
-
-            usage = [=]() -> float {
-                const auto d_use{d_total - d_idle};
-                if (d_use == 0 || d_total == 0) {
-                    return 0.0F;
-                }
-                return (float)(d_total - d_idle) / d_total * 100;
-            }();
-            usage_value = new_values;
-            return d_total;
-        }
-
-        ostream& print(ostream& os) const {
-            os << "{" << usage_value.total << ", " << usage_value.idle << "}";
-            return os;
-        }
     };
 
     /// For tracking the usage of processes.
     struct BasicProcess {
-        unsigned int pid;
-        long use{};  // Usage (since the begninning)
+        pid_t pid;
+        long use;  // lifetime usage.
     };
 
+    /// Used when sorting processes.
+    struct ProcessUsage : public BasicProcess {
+        float usage;  // % current usage.
+    };
+
+   public:
     /// Only created for processes that are above 0% usage.
-    struct Process : public BasicProcess {
+    struct Process : public ProcessUsage {
         string name;
         char mode;
-        float usage;  // % current usage.
-        ushort mem;   // MB
+        ushort mem;  // MB
 
         ostream& print(ostream& os) const {
             os << "{ ";
             {
                 dbg::IndentGuard ig{};
-                os << "pid: " << pid << ", ";
+                os << "pid: " << this->pid << ", ";
                 os << "name: " << name << ", ";
                 os << "mode: " << mode << ", ";
-                os << "usage: " << usage << ", ";
+                os << "usage: " << this->usage << ", ";
                 os << "mem: " << mem << ", ";
             }
             os << "}";
@@ -91,201 +156,146 @@ class CPU {
         }
     };
 
-   public:
     struct DynamicData {
-        array<ThreadStatus, thread_count> threads;  // Hard-coded thread count
-        ThreadStatus avg;  // Average usage and frequencies.
-        u_char temp;       // Celsius
+        vector<ThreadStatus> threads;  // Hard-coded thread count
+        ThreadStatus avg;              // Average usage and frequencies.
+        u_char temp;                   // Celsius
 
-        vector<BasicProcess> uses;        // Save the usage for all processes.
-        array<Process, max_procs> procs;  // Processes.
+        vector<Process> procs;  // Processes.
     };
 
     const string name;
+    const size_t thread_count;
 
-   private:
-    /// Set to false when stopping.
-    atomic<bool>& running;
-    /// The mutex for 'data'
-    unique_ptr<mutex> m;
-    /// The dynamically updated data.
-    DynamicData data;
-    /// The data update thread.
-    thread updater;
-    /// Set to true when there is new data available.
-    unique_ptr<atomic<bool>> update_available;
+    /// Save the LIFETIME usage for all processes in the system.
+    /// This is needed to compute the CURRENT usage.
+    /// See 'get_cpu_lifetime_usage' for a more detailed explanation.
+    vector<BasicProcess> tracked_procs;
 
-   public:
-    CPU(atomic<bool>& running)
-        : name{[] {
-              auto [name, thread_count]{get_cpu_info()};
-              if (thread_count != CPU::thread_count) {
-                  fatal_error("Hard-coded thread count is incorrect. Real: "
-                              << thread_count
-                              << ", Hard-coded: " << CPU::thread_count);
-              }
-              return name;
-          }()},
-          running{running},
-          m{make_unique<mutex>()},
-          updater{&CPU::update_loop, this},
-          update_available{make_unique<atomic<bool>>(false)} {
-        // Initial check
-        if (!exists("/sys/class/thermal/thermal_zone2/temp")) {
-            fatal_error("File missing: /sys/class/thermal/thermal_zone2/temp");
-        }
-
-        lock_guard ig{*m};
-        // Must be initialized at first run.
-        data = update();
-        *update_available = true;
-    }
+    CPU() : CPU{get_cpu_info()} {}
     CPU(const CPU&) = delete;
-    ~CPU() { updater.join(); }
 
-    /// Checks if there is new data and consumes it if there is one.
-    /// @return auto
-    [[nodiscard]] auto get_dynamic_data() {
-        if (*update_available) {
-            *update_available = false;
-            lock_guard lg{*m};
-            return make_pair(true, data);
-        }
-        return make_pair(false, DynamicData{});
-    }
-
-   private:
-    void update_loop() {
-        while (running) {
-            const auto t{now()};
-            {
-                lock_guard lg{*m};
-                data = update();
-                *update_available = true;
-            }
-            this_thread::sleep_until(t + interval);
-        }
-    }
-
-    [[nodiscard]] DynamicData update() const {
+    [[nodiscard]] auto update() {
         dbg(const auto tp{now()});
-        DynamicData new_data;
-        const auto ti{get_thread_info<thread_count>()};
-        const auto current_cycles{new_data.avg.update(data.avg, ti.overall)};
-        for (auto [nt, ot, tu, fq] :
-             zip(new_data.threads, data.threads, ti.threads,
-                 get_freq_info<thread_count>())) {
-            nt.update(ot, tu);
-            nt.freq = fq;
-        }
 
-        new_data.temp = [] {
+        DynamicData data;
+
+        const auto ti{get_cpu_freqs(thread_count)};
+
+        data.temp = [] {
+            // Ad-hoc way of getting temperatures in FPR's machine in Dec. 2020.
+            // Masu, fuck you btw.
             ifstream is{"/sys/class/thermal/thermal_zone2/temp"};
             return getulong(is) / 1000;
         }();
-        tie(new_data.procs, new_data.uses) = [&]() {
-            path proc{"/proc/"};
-            vector<Process> procs;
-            vector<BasicProcess> new_uses;
-            for (const auto& d : directory_iterator(proc)) {
+        data.procs = read_proc(1000);
+
+        dbg_out("CPU data: " << diff(tp) << "ms");
+        return data;
+    }
+
+   private:
+    CPU(pair<string, size_t> name_thread_count)
+        : name{name_thread_count.first},
+          thread_count{name_thread_count.second} {}
+
+    auto is_number(string_view s) {
+        return any_of(s.begin(), s.end(),
+                      [](auto c) { return c < '0' || '9' < c; });
+    }
+
+    auto read_proc(unsigned long current_cpu_usage) {
+        const auto sorted{[&] {
+            vector<ProcessUsage> procs;
+            for (const auto& d : directory_iterator("/proc")) {
                 // Skip non-directories
                 if (!d.is_directory()) {
                     continue;
                 }
                 // Skip directories that are not PIDs (number).
-                const auto& path{d.path()};
-                if ([&]() {
-                        const auto s{path.stem().string()};
-                        return any_of(s.begin(), s.end(), [](auto c) {
-                            return c < '0' || '9' < c;
-                        });
-                    }()) {
+                const auto& p{d.path()};
+                if (!is_number(p.stem().string())) {
                     continue;
                 }
 
-                ifstream is{path / "stat"};
-                /// Find the last usage data if it exists, otherwise create a
-                /// fresh one.
-                const auto last_use{[&is, &uses = data.uses]() -> BasicProcess {
-                    const auto pid{getuint(is)};
-                    if (const auto itr{
-                            find_if(uses.begin(), uses.end(),
-                                    [pid](auto& u) { return u.pid == pid; })};
-                        itr != uses.end()) {
-                        return *itr;
-                    }
-                    return {pid, 0};
-                }()};
-                BasicProcess new_use{.pid = last_use.pid};
+                ifstream is{p / "stat"};
+                // First data is the PID.
+                pid_t pid{getint(is)};
 
-                /// Skip to usage data.
-                skip_to(is, ')');
-                for (auto i{0}; i < 13; i++) {
-                    skip_to(is, ' ');
-                }
-                new_use.use = [&]() {
-                    ulong sum{};
-                    sum += getulong(is);
-                    sum += getulong(is);
-                    sum += getulong(is);
-                    sum += getulong(is);
-                    return sum;
-                }();
-                const auto d_use{new_use.use - last_use.use};
-                new_uses.push_back(new_use);
-                if (d_use == 0) {
-                    // Ignore if 0 usage this interval.
-                    continue;
-                }
-
-                procs.push_back({[&]() {
-                    Process p{new_use};
-
-                    // Parase other information
-                    is.seekg(ios_base::beg);
-
-                    skip_to(is, '(');
-                    p.name = [&]() {
-                        string name;
-                        for (char c; is >> c, is && c != ')';) {
-                            name += c;
-                        }
-                        return name;
-                    }();
-                    p.mode = getchar(is);
-                    for (auto i{0}; i < 14; i++) {
-                        skip_to(is, ' ');
-                    }
-                    p.usage = [&]() {
-                        if (last_use.use == 0) {
-                            return 0.0f;
-                        }
-                        return (float)d_use / current_cycles;
-                    }();
-                    for (auto i{0}; i < 7; i++) {
-                        skip_to(is, ' ');
-                    }
-                    p.mem =
-                        static_cast<float>((double)getulong(is) * 1e-6 *
-                                           (double)::sysconf(_SC_PAGE_SIZE));
-                    return p;
-                }()});
+                auto& bproc{
+                    [&is, pid, this]()
+                        -> auto& {
+                            if (const auto itr{find_if(
+                                    tracked_procs.begin(), tracked_procs.end(),
+                                    [pid](auto& p) { return p.pid == pid; })};
+                                itr != tracked_procs.end()){return *itr;
             }
-            sort(procs.begin(), procs.end(),
-                 [&](auto& lhs, auto& rhs) { return lhs.usage > rhs.usage; });
-            array<Process, max_procs> new_procs;
-            if (procs.size() > max_procs) {
-                copy(procs.begin(), procs.begin() + max_procs,
-                     new_procs.begin());
-            } else {
-                copy(procs.begin(), procs.end(), new_procs.begin());
-            }
-            return make_pair(new_procs, new_uses);
+
+            // Insert a new basic proc.
+            return tracked_procs.emplace_back(pid, 0);
+        }()};
+
+        /// Skip to usage data.
+        skip_to(is, ')');
+        for (auto i{0}; i < 13; i++) {
+            skip_to(is, ' ');
+        }
+
+        const auto last_use{bproc.use};
+        bproc.use = [&]() {
+            ulong sum{};
+            sum += getulong(is);
+            sum += getulong(is);
+            sum += getulong(is);
+            sum += getulong(is);
+            return sum;
         }();
 
-        dbg_out("CPU data: " << diff(tp) << "ms");
-        return new_data;
+        ProcessUsage usage{bproc};
+        usage.usage = (bproc.use - last_use) / current_cpu_usage * 100;
+
+        /// Skip if usage is 0.
+        if (usage.usage == 0) {
+            continue;
+        }
+
+        procs.push_back(usage);
     }
+
+    // Sort the processes by usage.
+    sort(procs.begin(), procs.end(),
+         [&](auto& lhs, auto& rhs) { return lhs.usage > rhs.usage; });
+
+    // Shrink the vector to the maximum size if needed.
+    if (procs.size() > max_procs) {
+        return vector<ProcessUsage>(procs.begin(), procs.begin() + max_procs);
+    }
+    return procs;
+}()
 };
-};  // namespace query
-};  // namespace fprd
+
+vector<Process> procs;
+for (auto p : sorted) {
+    Process proc{p};
+    ifstream is{"/proc/" + to_string(p.pid) + "/stat"};
+    skip_to(is, ')');
+    proc.mode = getchar(is);
+    for (auto i{0}; i < 14; i++) {
+        skip_to(is, ' ');
+    }
+    for (auto i{0}; i < 7; i++) {
+        skip_to(is, ' ');
+    }
+    proc.mem = static_cast<float>((double)getulong(is) * 1e-6 *
+                                  (double)::sysconf(_SC_PAGE_SIZE));
+
+    procs.push_back(proc);
+}
+return procs;
+}
+}
+;
+}
+;  // namespace probe
+}
+;  // namespace fprd

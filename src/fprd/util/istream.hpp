@@ -1,4 +1,4 @@
-/// @file is_utils.hpp
+/// @file istream.hpp
 /// @author FPR (funny.pig.run __ATMARK__ gmail.com)
 ///
 /// @copyright Copyright (c) 2020
@@ -59,6 +59,14 @@ auto getulong(istream& is) {
 /// @return auto
 auto getuint(istream& is) {
     uint i;
+    is >> i;
+    return i;
+}
+
+/// @param is
+/// @return auto
+auto getint(istream& is) {
+    int i;
     is >> i;
     return i;
 }
