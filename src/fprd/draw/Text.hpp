@@ -27,7 +27,7 @@ struct TextBase {
 
     template <VerticalAlign V, cairo::source FG = Color>
     void draw_text(Window &w, const FG &fg, string_view s) const {
-        const auto font_size{area.h};
+        const auto font_size{area.h * 0.99};
         w.set_font_size(font_size);
         w.set_font(*font);
         w.set_source(fg);
