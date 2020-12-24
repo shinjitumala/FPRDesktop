@@ -37,8 +37,6 @@ target_link_libraries(fprdesktop PRIVATE ${fprdesktop_link_libraries})
 # Sources
 doxygen_add_docs(doc src include)
 target_sources(fprdesktop PRIVATE src/main.cpp)
-target_precompile_headers(fprdesktop PRIVATE src/dbg/Log.hpp
-                          src/fprd/Window.hpp)
 
 # Configured files
 configure_file(src/fprd/Config.cmake.hpp
