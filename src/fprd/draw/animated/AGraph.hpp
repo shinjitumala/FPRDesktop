@@ -29,9 +29,10 @@ class AnimatedGraph : public Graph<size, Border, FG, BG> {
         using DataArray = typename Base::Data;
 
         DataArray history{};
-        char position{0};
 
        public:
+        char position{0};
+
         /// Obtain the current history, newest first.
         /// @return DataArray
         DataArray get() const {
@@ -60,10 +61,21 @@ class AnimatedGraph : public Graph<size, Border, FG, BG> {
     AnimatedGraph(const AnimatedGraph&) = delete;
     AnimatedGraph(AnimatedGraph&&) noexcept = default;
 
-    void update(float new_value) { current.add(new_value); }
+    void update(float new_value) {
+        if (100 < new_value) {
+            dbg::err << "Out of bounds: 100 < " << new_value << endl;
+            new_value = 100;
+        }
+        if (new_value < 0) {
+            dbg::err << "Out of bounds: " << new_value << " < 0 " << endl;
+            new_value = 0;
+        }
+
+        current.add(new_value);
+    }
 
     void draw(Window& w) {
-        Base::draw(w, w.frame_counter / fps, current.get());
+        Base::draw(w, (float)w.frame_counter / fps, current.get());
     }
 };
 };  // namespace fprd

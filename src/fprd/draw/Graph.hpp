@@ -35,7 +35,7 @@ struct Data {
     /// @return DataArray
     DataArray get() const {
         DataArray data;
-        for (char j{0}, i{position}; j < size; j++, i++, i %= size) {
+        for (short j{0}, i{position}; j < size; j++, i++, i %= size) {
             data[j] = history[i];
         }
         return data;
@@ -79,27 +79,26 @@ struct Graph {
     /// @param data
     void draw(Window &w, float offset_factor, Data data) {
         /// Fill background
+        w.set_source(bg);
         w.rectangle(pos, area);
         w.fill();
 
         /// Fill graph.
         const auto interval{area.w / (size - 2)};
-        const auto offset{offset_factor * interval};
         w.set_source(fg);
         {
-            const auto dif{data[1] - data[0]};
-            w.move_to(
-                pos.offset({0, area.h - (data[0] + dif * offset / interval)}));
+            const auto d{data[0] + (data[1] - data[0]) * (1 - offset_factor)};
+            w.move_to(pos.offset({0, area.h * (100 - d) / 100}));
         }
-        for (auto [i, d] :
-             data | enumerate | ::std::ranges::views::take(size - 1)) {
-            w.line_to(
-                pos.offset({offset + i * interval, area.h * (100 - d) / 100}));
+        for (auto i{1}; i < size - 1; i++) {
+            const auto d{data[i]};
+            w.line_to(pos.offset({(offset_factor + i - 1) * interval,
+                                  area.h * (100 - d) / 100}));
         }
         {
-            const auto dif{data[size - 1] - data[size - 2]};
-            w.line_to(pos.offset(
-                {area.w, area.h - (data[size - 2] + dif * offset / interval)}));
+            const auto d{data[size - 2] + (data[size - 1] - data[size - 2]) *
+                                              (1 - offset_factor)};
+            w.line_to(pos.offset({area.w, area.h * (100 - d) / 100}));
         }
         w.line_to(pos.offset({area.w, area.h}));
         w.line_to(pos.offset({0, area.h}));

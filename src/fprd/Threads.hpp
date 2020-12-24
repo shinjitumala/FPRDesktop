@@ -81,9 +81,9 @@ class Threads {
                       d.update_data(buf);
                   }
 
+                  w.frame_counter = frame_counter;
                   d.draw(w, has_new_data);
                   w.flush();
-                  w.frame_counter = frame_counter;
 
                   if (now() >= tp) {
                       cerr << "Frame is late by "
