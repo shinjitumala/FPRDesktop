@@ -25,13 +25,13 @@ using namespace ::std;
 /// The definition of a drawable type in fprd.
 /// @tparam D
 template <class D>
-concept drawable = requires(D &d, const D &cd, Window &w,
+concept drawable = requires(D &d, Window &w,
                             const typename D::DynamicData &data) {
     { d.update_data(data) }
     ->same_as<void>;
     { d.draw(w, declval<bool>()) }
     ->same_as<void>;
-    { cd.get_data() }
+    { d.get_data() }
     ->same_as<typename D::DynamicData>;
     { d.create_window() }
     ->same_as<Window>;
