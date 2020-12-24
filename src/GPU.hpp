@@ -131,8 +131,6 @@ class GPU {
                 auto tpos{center.offset(inner_edge.scale({1, -1}))};
                 w.draw(ico_temp, icon_size.top_right(tpos), icon_size);
                 tpos = tpos.stack_bottom(icon_size);
-                dbg_out(tpos);
-                dbg_out(tb.area);
                 tb.pos = tb.area.top_right(tpos);
                 watts = {tb, theme::white, theme::black};
             }
