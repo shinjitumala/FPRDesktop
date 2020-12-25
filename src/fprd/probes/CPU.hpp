@@ -264,7 +264,7 @@ class CPU {
 
         data.mem_free = [] {
             ifstream is{"/proc/meminfo"};
-            skip_lines(is, 1);
+            skip_lines(is, 2);
             return stoi(getval(is));
         }();
 
