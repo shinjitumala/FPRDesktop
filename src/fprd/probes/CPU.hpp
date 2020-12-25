@@ -162,17 +162,17 @@ class CPU {
 
        private:
         static constexpr auto pidw{5};
-        static constexpr auto mw{1};
-        static constexpr auto namew{16};
-        static constexpr auto usagew{5};
-        static constexpr auto memw{7};
+        static constexpr auto mw{4};
+        static constexpr auto namew{20};
+        static constexpr auto usagew{7};
+        static constexpr auto memw{9};
 
        public:
         static string header() {
             ostringstream os;
             os << setfill(' ') << right << setw(pidw) << "PID";
             os << " ";
-            os << setfill(' ') << right << setw(mw) << "S";
+            os << setfill(' ') << right << setw(mw) << "Mode";
             os << " ";
             os << setfill(' ') << left << setw(namew) << "Name";
             os << " ";
@@ -208,13 +208,15 @@ class CPU {
     struct DynamicData {
         vector<ThreadStatus> threads;  // Hard-coded thread count
         ThreadStatus avg;              // Average usage and frequencies.
-        u_char temp;                   // Celsius
+        short temp;                    // Celsius
+        int mem_free;                  // KB
 
         vector<Process> procs;  // Processes.
     };
 
     const string name;
     const size_t thread_count;
+    const int mem_total;  // KB
 
     /// Save the LIFETIME usage for all processes in the system.
     /// This is needed to compute the CURRENT usage.
@@ -260,6 +262,12 @@ class CPU {
         }();
         data.procs = read_proc(d_total_use);
 
+        data.mem_free = [] {
+            ifstream is{"/proc/meminfo"};
+            skip_lines(is, 1);
+            return stoi(getval(is));
+        }();
+
         dbg_out("CPU data: " << diff(tp) << "ms");
         return data;
     }
@@ -267,7 +275,12 @@ class CPU {
    private:
     CPU(pair<string, size_t> name_thread_count)
         : name{name_thread_count.first},
-          thread_count{name_thread_count.second} {
+          thread_count{name_thread_count.second},
+          mem_total{[] {
+              ifstream is{"/proc/meminfo"};
+              // Get total memory (1st line).
+              return stoi(getval(is));
+          }()} {
         prev_usage.threads.resize(thread_count);
     }
 
