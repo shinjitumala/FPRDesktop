@@ -13,8 +13,8 @@
 
 namespace fprd {
 
-/// Line graph
-/// @tparam size
+/// Animated line graph.
+/// @tparam size The size of the history.
 /// @tparam Border
 /// @tparam FG
 /// @tparam BG
@@ -28,11 +28,13 @@ class AnimatedGraph : public Graph<size, Border, FG, BG> {
     class Data {
         using DataArray = typename Base::Data;
 
+        /// Store the data here.
         DataArray history{};
 
-       public:
+        /// The current position.
         char position{0};
 
+       public:
         /// Obtain the current history, newest first.
         /// @return DataArray
         DataArray get() const {
@@ -54,13 +56,23 @@ class AnimatedGraph : public Graph<size, Border, FG, BG> {
         }
     };
 
+    /// Stored history.
     Data current;
 
    public:
+    /// Initialize from a Graph.
+    /// @param graph
     AnimatedGraph(Base graph) : Base{graph}, current{} {};
+    /// Copying is not allowed.
     AnimatedGraph(const AnimatedGraph&) = delete;
+    /// Moving is allowed, however.
     AnimatedGraph(AnimatedGraph&&) noexcept = default;
 
+    /// Update the target percentage.
+    /// Currently hard-coded such that this function must be called every second
+    /// or it breaks.
+    /// TODO: Make the update interval adjustable via template parameters.
+    /// @param new_value 
     void update(float new_value) {
         if (100 < new_value) {
             dbg::err << "Out of bounds: 100 < " << new_value << endl;
@@ -74,6 +86,8 @@ class AnimatedGraph : public Graph<size, Border, FG, BG> {
         current.add(new_value);
     }
 
+    /// Call this every frame.
+    /// @param w 
     void draw(Window& w) {
         Base::draw(w, (float)w.frame_counter / fps, current.get());
     }
