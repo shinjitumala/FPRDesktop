@@ -6,6 +6,7 @@
 /// License: Proprietary.
 /// You may not use or share this file without the permission of the author.
 
+#include <CPU.hpp>
 #include <GPU.hpp>
 #include <chrono>
 #include <csignal>
@@ -33,7 +34,7 @@ int main(int argc, char **argv) {
     std::signal(SIGKILL, stop);
 
     GPUWindow gpus{run, {0, 0}};
-    // CPUWindow cpu{};
+    CPUWindow cpu{run, CPUWindow::area.top_right({1920, 0})};
 
     return 0;
 }
