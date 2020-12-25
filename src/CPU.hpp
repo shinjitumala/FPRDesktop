@@ -9,170 +9,178 @@
 #pragma once
 
 #include <fprd/Theme.hpp>
+#include <fprd/Threads.hpp>
 #include <fprd/Window.hpp>
-#include <fprd/parts/Bar.hpp>
-#include <fprd/parts/History.hpp>
-#include <fprd/parts/Text.hpp>
-#include <fprd/query/CPU.hpp>
+#include <fprd/draw/Text.hpp>
+#include <fprd/draw/animated/ABar.hpp>
+#include <fprd/draw/animated/AGraph.hpp>
+#include <fprd/probes/CPU.hpp>
+#include <fprd/util/AnimatedValue.hpp>
 #include <fprd/util/ranges.hpp>
-#include <fprd/values/animated.hpp>
+
+#include "fprd/draw/animated/AnimatedList.hpp"
 
 namespace fprd {
 using namespace std;
-namespace widget {
-using namespace theme;
 class CPU {
-    inline static const auto thread_bar_h{L3_h * 1.5F};
-    inline static const auto center_h{thread_bar_h * 4 + L2_h + L3_h * 2};
-    inline static const auto max_name_len{16};
-    inline static const auto thread_count{query::CPU::thread_count};
+    static constexpr auto max_procs{16};
+    using Probe = probe::CPU<max_procs>;
+    using ProcList = AnimatedList<typename Probe::Process, max_procs>;
 
    public:
-    inline static const Area<float> size{
-        350, thread_bar_h * 4 + center_h + L3_h*(query::CPU::max_procs + 1)};
+    using DynamicData = typename Probe::DynamicData;
+    static constexpr auto probe_interval{1s};
+
+    static constexpr auto w{256};
+    static constexpr auto cores_row{theme::medium_area(w)};
+    static constexpr auto cores_rows{4};
+    static constexpr Area<float> graph_area{w, 32};
+    static constexpr Area<float> procs_area{w,
+                                            (max_procs + 1) * theme::small_h};
+
+    static constexpr Area<float> area{w, cores_row.h* cores_rows +
+                                             procs_area.h + theme::large_h + 3 +
+                                             graph_area.h * 2};
+
+    const Position<int> pos;
 
    private:
-    query::CPU& query;
-    query::CPU::DynamicData data;
+    Probe probe;
 
-    array<Bar<Orientation::horizontal, Direction::positive>, thread_count>
-        thread_usage_bars;
-    array<AnimatedValue<float>, thread_count> thread_usages;
-    array<Text<VerticalAlign::center>, thread_count> thread_freq_texts;
-    array<AnimatedValue<float>, thread_count> thread_freqs;
-
-    array<DynamicText<VerticalAlign::left>, query::CPU::max_procs> procs;
-
-    History<float> usage;
-    History<float> memory;
+    vector<AnimatedBar<Orientation::horizontal, Direction::positive>>
+        core_usages;
+    vector<Text<VerticalAlign::center>> core_freqs;
+    vector<AnimatedValue<ushort>> core_freqs_v;
+    AnimatedGraph<128> usage;
+    AnimatedValue<float> temp_v{};
+    Text<VerticalAlign::center> temp;
+    AnimatedGraph<128> memory;
+    AnimatedValue<int> memory_v{};
+    Text<VerticalAlign::center> memory_value;
+    const string total_memory;
+    unique_ptr<ProcList> procs;
 
    public:
-    CPU(FPRWindow& win, query::CPU& query, const Position<float> pos)
-        : query{query} {
-        const auto quarter_thread{query::CPU::thread_count / 4};
-        const Area<float> core_bar_size{(float)size.w / quarter_thread,
-                                        thread_bar_h};
+    CPU(Position<int> pos)
+        : pos{pos},
+          probe{},
+          usage{{{0, theme::large_h + 3 + cores_row.h * cores_rows},
+                 graph_area,
+                 theme::grey,
+                 1,
+                 theme::red,
+                 theme::black}},
+          memory{{{0, theme::large_h + 3 + cores_row.h * cores_rows +
+                          graph_area.h},
+                  graph_area,
+                  theme::grey,
+                  1,
+                  theme::green,
+                  theme::black}},
+          total_memory{"/" + ftos<1>((float)probe.mem_total / 1000000) + "GB"} {
+    }
 
-        Bar<Orientation::horizontal, Direction::positive> b{
-            .border_width = 2,
-            .frame = grey,
-            .empty = black,
-            .filled = green,
+    void update_data(const DynamicData& d) {
+        for (auto [ts, b, f] : zip(d.threads, core_usages, core_freqs_v)) {
+            b.update(ts.usage * 100);
+            f.update(ts.freq);
+        }
+        usage.update(d.avg.usage * 100);
+
+        const auto mem_usage{static_cast<float>(probe.mem_total - d.mem_free) /
+                             static_cast<float>(probe.mem_total)};
+        memory.update(mem_usage * 100);
+        memory_v.update(probe.mem_total - d.mem_free);
+        temp_v.update(d.temp);
+
+        procs->update(d.procs);
+    }
+
+    void draw(Window& w, bool new_data) {
+        for (auto& b : core_usages) {
+            b.draw(w);
+        }
+        for (auto [v, f] : zip(core_freqs_v, core_freqs)) {
+            f.draw(w, width<4>(to_string(v.draw())) + "MHz");
+        }
+        usage.draw(w);
+        memory.draw(w);
+        procs->draw(w);
+        memory_value.draw(
+            w, ftos<3>((float)memory_v.draw() / 1000000) + total_memory);
+        temp.draw(w, ftos<1>(temp_v.draw()) + "℃");
+    }
+
+    DynamicData get_data() { return probe.update(); };
+
+    Window create_window() {
+        Window w{":0.0", pos, area};
+
+        Text<VerticalAlign::center> t{
+            {&theme::bold, {0, 0}, theme::large_area(area.w)}, theme::red};
+        draw_text_once(w, t, [&] {
+            const auto name{probe.name};
+            const string_view start{"Core(TM)"};
+            const auto spos{name.find(start) + start.size()};
+            const auto epos{name.find("CPU") - 1};
+            return "Intel" + name.substr(spos, epos - spos);
+        }());
+
+        const auto cores_per_row{probe.thread_count / cores_rows};
+
+        Margin<float> m{1, 1};
+        const Area<float> core_area{
+            cores_row.scale({1.0F / cores_per_row, 1.0F})};
+        Bar<Orientation::horizontal, Direction::positive> bbase{
+            .area = core_area.pad(m),
+            .border_width = 1,
+            .frame = theme::grey,
+            .empty = theme::black,
+            .filled = theme::red,
         };
+        Text<VerticalAlign::center> tc{{&theme::normal, {}, core_area.pad(m)},
+                                       theme::white};
+        for (auto i{0U}; i < probe.thread_count; i++) {
+            const auto x{i / cores_per_row};
+            const auto y{i % cores_per_row};
 
-        /// Initialize thread frequency indicators.
-        Text<VerticalAlign::center> t;
-        t.font = &noto_sans;
-        t.fg = white;
-        t.area = L3_area(core_bar_size.w);
-        for (auto i{0}, x{0}, y{0}; i < query::CPU::thread_count;
-             i++, x++, x %= quarter_thread, y = i / 4) {
-            b.pos = pos.stack(core_bar_size.scale({x, y})).pad(L3_m);
-            if (2 <= y) {
-                b.pos = b.pos.offset({0, center_h});
-            }
-            thread_usage_bars[i] = b;
-
-            t.pos = t.area.vertical_center(b.area.vertical_center(b.pos));
-            thread_freq_texts[i] = t;
+            const Position<float> pos{x * core_area.w,
+                                      y * core_area.h + theme::large_h + 3};
+            bbase.pos = pos.pad(m);
+            core_usages.emplace_back(bbase);
+            tc.pos = pos;
+            core_freqs.emplace_back(tc);
         }
+        core_freqs_v.resize(probe.thread_count);
 
-        /// Draw the CPU name
-        t.font = &noto_sans_bold;
-        t.fg = red;
-        t.area = L3_area(size.w);
-        t.pos = t.area.vertical_center(
-            pos.offset(Position<double>{0, thread_bar_h * 2 + center_h * 0.5}));
-        t.update(win, query.name);
+        memory_value = tc;
+        memory_value.area = theme::medium_area(area.w);
+        memory_value.pos = memory_value.area.vertical_center(
+            Position<double>{0, theme::large_h + 3 + core_area.h * cores_rows +
+                                    graph_area.h * 1.5});
 
-        /// Draw process list header
-        t.fg = white;
-        t.font = &noto_sans_bold;
-        t.pos = pos.offset({0, thread_bar_h * 4.0F + center_h});
-        t.area = L3_area(size.w);
-        const auto header{[]() {
-            ostringstream oss;
-            oss << setfill(' ') << setw(6) << right << "PID";
-            oss << " ";
-            oss << setfill(' ') << setw(1) << right << "T";
-            oss << " ";
-            oss << setfill(' ') << setw(max_name_len) << left << "Name";
-            oss << " ";
-            oss << setfill(' ') << setw(8) << right << "Usage";
-            oss << " ";
-            oss << setfill(' ') << setw(7) << right << "Memory";
-            return oss.str();
-        }()};
-        t.update(win, header);
+        temp = memory_value;
+        temp.pos = temp.area.vertical_center(
+            Position<double>{0, theme::large_h + 3 + core_area.h * cores_rows +
+                                    graph_area.h * 0.5});
 
-        /// Draw process list item.
-        DynamicText<VerticalAlign::left> dt{{t}};
-        dt.font = &noto_sans;
-        dt.fg = white;
-        dt.bg = black;
-        for (auto& proc : procs) {
-            dt.pos = dt.pos.stack_bottom(L3_area(size.w));
-            proc = dt;
-        }
+        procs = make_unique<ProcList>(
+            w,
+            Position<float>{0, cores_rows * core_area.h + theme::large_h + 3 +
+                                   graph_area.h * 2},
+            procs_area);
 
-        usage.area = Area<float>{size.w, thread_bar_h * 2}.pad(L3_m);
-        usage.pos = pos.offset({0, thread_bar_h * 2}).pad(L3_m);
-        usage.fg = green;
-        usage.bg = black;
-        usage.b = grey;
-        usage.border_width = 2;
-
-        memory = usage;
-        memory.fg = blue;
-        memory.pos = pos.offset({0, center_h}).pad(L3_m);
-    }
-
-    void draw(FPRWindow& w) {
-        if (auto [updated, new_data]{query.get_dynamic_data()}; updated) {
-            // Only run when there is new data.
-            data = new_data;  // Copy the new data.
-
-            // Update history
-            usage.update(w, data.avg.usage);
-            memory.update(w, 0);
-
-            for (auto [b, v, td] :
-                 zip(thread_usage_bars, thread_usages, data.threads)) {
-                b.draw(w, v);
-            }
-            for (auto [p, pd] : zip(procs, data.procs)) {
-                if (!pd.name.empty()) {
-                    ostringstream oss;
-                    oss << setfill(' ') << setw(6) << right << pd.pid;
-                    oss << " ";
-                    oss << setfill(' ') << setw(1) << right << pd.mode;
-                    oss << " ";
-                    oss << setfill(' ') << setw(max_name_len) << left <<
-                        [&pd = pd]() {
-                            if (pd.name.size() < max_name_len) {
-                                return pd.name;
-                            }
-                            return pd.name.substr(0, max_name_len - 3) + "...";
-                        }();
-                    oss << " ";
-                    oss << setfill(' ') << setw(8) << right
-                        << (ftos<2>(pd.usage * 100) + "%");
-                    oss << " ";
-                    oss << setfill(' ') << setw(7) << right
-                        << (to_string(pd.mem) + "MB");
-                    p.update(w, oss.str());
-                } else {
-                    p.update(w, "");
-                }
-            }
-        }
-        for (auto [t, thz, td, chz] : zip(thread_usage_bars, threads_hz,
-                                          data.threads, threads_current_hz)) {
-            t.update(w);
-            chz = slow_update(chz, td.freq);
-            thz.update(w, ftos<0>(chz) + "MHz");
-        }
-    }
+        return w;
+    };
 };
-};  // namespace widget
+
+class CPUWindow {
+    CPU c;
+    Threads<CPU> t;
+
+   public:
+    static constexpr Area<int> area{CPU::area};
+
+    CPUWindow(atomic<bool>& run, Position<int> pos) : c{pos}, t{run, c} {}
+};
 };  // namespace fprd
