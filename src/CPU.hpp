@@ -14,11 +14,10 @@
 #include <fprd/draw/Text.hpp>
 #include <fprd/draw/animated/ABar.hpp>
 #include <fprd/draw/animated/AGraph.hpp>
+#include <fprd/draw/animated/AnimatedList.hpp>
 #include <fprd/probes/CPU.hpp>
 #include <fprd/util/AnimatedValue.hpp>
 #include <fprd/util/ranges.hpp>
-
-#include "fprd/draw/animated/AnimatedList.hpp"
 
 namespace fprd {
 using namespace std;

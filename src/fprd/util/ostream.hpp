@@ -30,8 +30,7 @@ constexpr string_view nl{"\n"};
 /// @tparam T
 template <class T>
 concept Printable = requires(const T &t, ostream &os) {
-    { t.print(os) }
-    ->same_as<ostream &>;
+    { t.print(os) } -> same_as<ostream &>;
 };
 
 /// An operator overload for printable types defined by SWORD.

@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
 
     GPUWindow gpus{run, {0, 0}};
     CPUWindow cpu{run, CPUWindow::area.top_right({1920, 0})};
-    SystemWindow sys{run, SystemWindow::area.bottom_left({0,1080})};
+    SystemWindow sys{run, SystemWindow::area.bottom_left({0, 1080})};
 
     return 0;
 }

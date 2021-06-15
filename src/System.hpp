@@ -34,7 +34,8 @@ class System {
     System(Position<float> pos)
         : pos{pos},
           t_time{{&theme::normal, {0, 0}, theme::medium_area(area.w)},
-                 theme::white, theme::black} {}
+                 theme::white,
+                 theme::black} {}
 
     void update_data(DynamicData d) { time = ctime(&d.t); }
 

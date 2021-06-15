@@ -18,10 +18,8 @@ namespace fprd {
 /// @tparam T
 template <class T>
 concept list_item = requires(const T& t) {
-    { T::header() }
-    ->same_as<string>;
-    { t == t }
-    ->convertible_to<bool>;
+    { T::header() } -> same_as<string>;
+    { t == t } -> convertible_to<bool>;
 }
 &&Printable<T>;
 

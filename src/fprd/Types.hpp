@@ -79,7 +79,8 @@ struct Margin {
     /// @param scale
     /// @return requires constexpr
     template <number S>
-    requires convertible_to<S, I> constexpr Margin operator*(S scale) const {
+    requires convertible_to<S, I>
+    constexpr Margin operator*(S scale) const {
         I s{static_cast<I>(scale)};
         return {l * s, r * s, t * s, b * s};
     };
@@ -89,7 +90,8 @@ struct Margin {
     /// @param scale
     /// @return requires constexpr
     template <number S>
-    requires convertible_to<I, S> constexpr operator Margin<S>() const {
+    requires convertible_to<I, S>
+    constexpr operator Margin<S>() const {
         if constexpr (is_floating_point_v<I> && is_integral_v<S>) {
             return {round<S>(l), round<S>(r), round<S>(t), round<S>(b)};
         }
@@ -171,7 +173,8 @@ struct Position {
     /// @tparam S
     /// @return Position<S>
     template <number S>
-    requires convertible_to<I, S> constexpr operator Position<S>() const {
+    requires convertible_to<I, S>
+    constexpr operator Position<S>() const {
         if constexpr (is_floating_point_v<I> && is_integral_v<S>) {
             return {round<S>(x), round<S>(y)};
         }
@@ -219,7 +222,8 @@ struct Area {
     /// @tparam S
     /// @return Area<S>
     template <number S>
-    requires convertible_to<I, S> constexpr operator Area<S>() const {
+    requires convertible_to<I, S>
+    constexpr operator Area<S>() const {
         if constexpr (is_floating_point_v<I> && is_integral_v<S>) {
             return {round<S>(w), round<S>(h)};
         }

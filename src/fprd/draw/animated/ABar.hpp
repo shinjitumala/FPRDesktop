@@ -49,14 +49,14 @@ class AnimatedBar : public Bar<o, d, Frame, Empty, Filled> {
     }
 
     /// Call this every frame.
-    /// @param w 
+    /// @param w
     void draw(Window& w) {
         Base::draw(w, current);
         current += increment;
     }
 
     /// In case you need to peek the current value of the bar.
-    /// @return float 
+    /// @return float
     [[nodiscard]] float current_percentage() const { return current; }
 };
 };  // namespace fprd

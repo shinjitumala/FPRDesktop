@@ -72,7 +72,7 @@ class AnimatedGraph : public Graph<size, Border, FG, BG> {
     /// Currently hard-coded such that this function must be called every second
     /// or it breaks.
     /// TODO: Make the update interval adjustable via template parameters.
-    /// @param new_value 
+    /// @param new_value
     void update(float new_value) {
         if (100 < new_value) {
             dbg::err << "Out of bounds: 100 < " << new_value << endl;
@@ -87,7 +87,7 @@ class AnimatedGraph : public Graph<size, Border, FG, BG> {
     }
 
     /// Call this every frame.
-    /// @param w 
+    /// @param w
     void draw(Window& w) {
         Base::draw(w, (float)w.frame_counter / fps, current.get());
     }

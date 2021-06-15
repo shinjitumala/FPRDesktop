@@ -58,7 +58,7 @@ class AnimatedArcBar : ArcBar<d, Border, Empty, Filled> {
     }
 
     /// In case you need to peek the current value of the bar.
-    /// @return float 
+    /// @return float
     [[nodiscard]] float current_percentage() const { return current; }
 };
 };  // namespace fprd

@@ -27,14 +27,10 @@ using namespace ::std;
 template <class D>
 concept drawable = requires(D &d, Window &w,
                             const typename D::DynamicData &data) {
-    { d.update_data(data) }
-    ->same_as<void>;
-    { d.draw(w, declval<bool>()) }
-    ->same_as<void>;
-    { d.get_data() }
-    ->same_as<typename D::DynamicData>;
-    { d.create_window() }
-    ->same_as<Window>;
+    { d.update_data(data) } -> same_as<void>;
+    { d.draw(w, declval<bool>()) } -> same_as<void>;
+    { d.get_data() } -> same_as<typename D::DynamicData>;
+    { d.create_window() } -> same_as<Window>;
 }
 &&is_same_v<decltype(D::probe_interval), const seconds>;
 
