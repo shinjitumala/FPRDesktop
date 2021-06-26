@@ -24,13 +24,12 @@ namespace x11 {
 
 /// 'XFree()' is called on the span upon distruction.
 /// @tparam V
-template <class V>
-struct FreedSpan : public span<V> {
-   private:
+template <class V> struct FreedSpan : public span<V> {
+  private:
     /// Convenient alias.
     using Base = span<V>;
 
-   public:
+  public:
     /// Use the base constructors.
     using Base::Base;
 
@@ -69,7 +68,7 @@ class Window {
     /// @param id
     Window(const Connection &c, ::Window id) : c{c}, id{id} {}
 
-   public:
+  public:
     /// Copying is disallowed.
     Window(const Window &) = delete;
     /// Moving is allowed however.
@@ -94,7 +93,7 @@ class Connection {
     /// The real type.
     Display *d;
 
-   public:
+  public:
     /// Open a connection to the X11 server.
     /// @param display
     Connection(string &&display) : d{XOpenDisplay(display.c_str())} {
@@ -144,21 +143,16 @@ class Connection {
     ///     read in the property if a partial read was performed. Returns the
     ///     data in the specified format.
     /// }
-    [[nodiscard]] auto get_window_property(const Window &w, Atom property,
-                                           long offset, long length,
-                                           bool delete_after,
-                                           Atom request_type) const {
+    [[nodiscard]] auto get_window_property(const Window &w, Atom property, long offset, long length,
+                                           bool delete_after, Atom request_type) const {
         Atom type;
         int format;
         unsigned long nitems;
         unsigned long bytes_after;
         unsigned char *prop;
-        XGetWindowProperty(d, static_cast<::Window>(w), property, offset,
-                           length, static_cast<int>(delete_after), request_type,
-                           &type, &format, &nitems, &bytes_after, &prop);
-        return make_tuple(
-            type, format,
-            FreedSpan<unsigned char>{prop, prop + nitems + bytes_after});
+        XGetWindowProperty(d, static_cast<::Window>(w), property, offset, length, static_cast<int>(delete_after),
+                           request_type, &type, &format, &nitems, &bytes_after, &prop);
+        return make_tuple(type, format, FreedSpan<unsigned char>{prop, prop + nitems + bytes_after});
     }
 
     [[nodiscard]] auto query_tree(const Window &w) const {
@@ -166,78 +160,53 @@ class Connection {
         ::Window parent;
         ::Window *children;
         unsigned int children_count;
-        if (XQueryTree(d, static_cast<::Window>(w), &root, &parent, &children,
-                       &children_count) == 0) {
+        if (XQueryTree(d, static_cast<::Window>(w), &root, &parent, &children, &children_count) == 0) {
             fatal_error("'XQueryTree' failed!");
         }
-        return make_tuple(
-            root, parent,
-            FreedSpan<::Window>{children, children + children_count});
+        return make_tuple(root, parent, FreedSpan<::Window>{children, children + children_count});
     }
 
     [[nodiscard]] auto get_window_attributes(const Window &w) const {
         XWindowAttributes attr;
-        const auto status{
-            XGetWindowAttributes(d, static_cast<::Window>(w), &attr)};
+        const auto status{XGetWindowAttributes(d, static_cast<::Window>(w), &attr)};
         return make_pair(status != 0, attr);
     }
 
     auto flush() const { XFlush(d); }
 
-    [[nodiscard]] auto create_window(
-        ::Window parent, Position<int> pos, Area<unsigned int> size,
-        unsigned int border_w, int depth, unsigned int window_class,
-        Visual *visual, unsigned long value_mask,
-        const XSetWindowAttributes &attributes) const {
-        return Window{
-            *this,
-            XCreateWindow(d, parent, pos.x, pos.y, size.w, size.h, border_w,
-                          depth, window_class, visual, value_mask,
-                          const_cast<XSetWindowAttributes *>(&attributes))};
+    [[nodiscard]] auto create_window(::Window parent, Position<int> pos, Area<unsigned int> size,
+                                     unsigned int border_w, int depth, unsigned int window_class, Visual *visual,
+                                     unsigned long value_mask, const XSetWindowAttributes &attributes) const {
+        return Window{*this, XCreateWindow(d, parent, pos.x, pos.y, size.w, size.h, border_w, depth, window_class,
+                                           visual, value_mask, const_cast<XSetWindowAttributes *>(&attributes))};
     }
 
-    [[nodiscard]] auto root_window(int screen) const {
-        return XRootWindow(d, screen);
-    }
+    [[nodiscard]] auto root_window(int screen) const { return XRootWindow(d, screen); }
     [[nodiscard]] auto default_screen() const { return XDefaultScreen(d); };
-    [[nodiscard]] auto default_visual(int screen) const {
-        return XDefaultVisual(d, screen);
-    };
+    [[nodiscard]] auto default_visual(int screen) const { return XDefaultVisual(d, screen); };
 
-    auto set_WM_properties(const Window &w, string &&window_name,
-                           string &&icon_name, vector<string> args,
-                           optional<XSizeHints> &&sh, optional<XWMHints> &&wmh,
-                           optional<XClassHint> &&ch) const {
-        XmbSetWMProperties(
-            d, static_cast<::Window>(w), window_name.c_str(), icon_name.c_str(),
-            (!args.empty()) ? reinterpret_cast<char **>(args.data()) : nullptr,
-            args.size(), (sh) ? &*sh : nullptr, (wmh) ? &*wmh : nullptr,
-            (ch) ? &*ch : nullptr);
+    auto set_WM_properties(const Window &w, string &&window_name, string &&icon_name, vector<string> args,
+                           optional<XSizeHints> &&sh, optional<XWMHints> &&wmh, optional<XClassHint> &&ch) const {
+        XmbSetWMProperties(d, static_cast<::Window>(w), window_name.c_str(), icon_name.c_str(),
+                           (!args.empty()) ? reinterpret_cast<char **>(args.data()) : nullptr, args.size(),
+                           (sh) ? &*sh : nullptr, (wmh) ? &*wmh : nullptr, (ch) ? &*ch : nullptr);
     }
 
-    [[nodiscard]] auto set_WM_protocols(const Window &w,
-                                        vector<Atom> protocols) const {
-        return XSetWMProtocols(d, static_cast<::Window>(w),
-                               (protocols.empty()) ? nullptr : protocols.data(),
+    [[nodiscard]] auto set_WM_protocols(const Window &w, vector<Atom> protocols) const {
+        return XSetWMProtocols(d, static_cast<::Window>(w), (protocols.empty()) ? nullptr : protocols.data(),
                                protocols.size());
     }
 
-    auto atom(string &&name) const {
-        return XInternAtom(d, name.data(), False);
-    };
+    auto atom(string &&name) const { return XInternAtom(d, name.data(), False); };
 
     template <class Element, size_t size>
-    [[nodiscard]] auto change_property(const Window &w, Atom property,
-                                       Atom type, int format, int mode,
+    [[nodiscard]] auto change_property(const Window &w, Atom property, Atom type, int format, int mode,
                                        array<Element, size> data) const {
-        return XChangeProperty(
-            d, static_cast<::Window>(w), property, type, format, mode,
-            reinterpret_cast<unsigned char *>(data.data()), size);
+        return XChangeProperty(d, static_cast<::Window>(w), property, type, format, mode,
+                               reinterpret_cast<unsigned char *>(data.data()), size);
     }
 
-    [[nodiscard]] auto map_window(const Window &w) const {
-        return XMapWindow(d, static_cast<::Window>(w));
-    }
+    [[nodiscard]] auto map_window(const Window &w) const { return XMapWindow(d, static_cast<::Window>(w)); }
     [[nodiscard]] auto select_input(const Window &w, long mask) const {
         return XSelectInput(d, static_cast<::Window>(w), mask);
     }
@@ -266,12 +235,11 @@ ostream &operator<<(ostream &os, const XWindowAttributes &attr) {
         os << "border_width: " << attr.border_width << "," << nl;
         os << "depth: " << attr.depth << "," << nl;
         os << "root: " << attr.root << "," << nl;
-        os << "screen: " << attr.screen->width << "x" << attr.screen->height
-           << "," << nl;
+        os << "screen: " << attr.screen->width << "x" << attr.screen->height << "," << nl;
     }
     os << "}";
     return os;
 }
 
-};  // namespace x11
-};  // namespace fprd
+}; // namespace x11
+}; // namespace fprd

@@ -22,29 +22,27 @@ using namespace std;
 struct Enumerate {};
 static constexpr Enumerate enumerate{};
 
-template <class C>
-struct Enumeration {
+template <class C> struct Enumeration {
     C c;
 
     using BaseIterator =
-        conditional_t<is_const_v<remove_reference_t<C>>,
-                      typename remove_cvref_t<C>::const_iterator,
+        conditional_t<is_const_v<remove_reference_t<C>>, typename remove_cvref_t<C>::const_iterator,
                       typename remove_cvref_t<C>::iterator>;
     struct iterator {
-       private:
+      private:
         using Base = BaseIterator;
         Base itr;
 
-       public:
+      public:
         using value_type = pair<size_t, decltype(*itr) &>;
         using difference_type = int;
         using pointer = value_type;
         using reference = value_type;
 
-       private:
+      private:
         size_t index;
 
-       public:
+      public:
         iterator(Base itr, size_t index) : itr{itr}, index{index} {}
 
         auto operator++() {
@@ -72,22 +70,17 @@ struct Enumeration {
     auto end() { return iterator{c.end(), numeric_limits<size_t>::max()}; }
 };
 
-template <class C>
-auto operator|(C &&c, Enumerate /* unused */) {
-    return Enumeration<C>{c};
-}
+template <class C> auto operator|(C &&c, Enumerate /* unused */) { return Enumeration<C>{c}; }
 
 /// WARNING: The left range is assumed to be shorter or equal to the right ones.
 /// @tparam Cs
-template <class... Cs>
-struct Zipped {
+template <class... Cs> struct Zipped {
     tuple<Cs...> containers;
 
     struct iterator {
         template <class C>
         using BaseIterator =
-            conditional_t<is_const_v<remove_reference_t<C>>,
-                          typename remove_cvref_t<C>::const_iterator,
+            conditional_t<is_const_v<remove_reference_t<C>>, typename remove_cvref_t<C>::const_iterator,
                           typename remove_cvref_t<C>::iterator>;
 
         tuple<BaseIterator<Cs>...> itrs;
@@ -109,30 +102,20 @@ struct Zipped {
         }
 
         reference operator*() {
-            return std::apply(
-                [](auto... args) { return make_tuple(ref(*args)...); }, itrs);
+            return std::apply([](auto... args) { return make_tuple(ref(*args)...); }, itrs);
         }
-        bool operator!=(const iterator &rhs) const {
-            return get<0>(itrs) != get<0>(rhs.itrs);
-        };
+        bool operator!=(const iterator &rhs) const { return get<0>(itrs) != get<0>(rhs.itrs); };
         // BUG?
         // auto operator<=>(const iterator &rhs) const { return li <=> rhs.li; }
     };
 
     iterator begin() {
-        return iterator{std::apply(
-            [](auto &&...args) { return make_tuple(args.begin()...); },
-            containers)};
+        return iterator{std::apply([](auto &&...args) { return make_tuple(args.begin()...); }, containers)};
     }
     iterator end() {
-        return iterator{
-            std::apply([](auto &&...args) { return make_tuple(args.end()...); },
-                       containers)};
+        return iterator{std::apply([](auto &&...args) { return make_tuple(args.end()...); }, containers)};
     }
 };
 
-template <class... Cs>
-auto zip(Cs &&...args) {
-    return Zipped<Cs...>{{args...}};
-}
-};  // namespace fprd
+template <class... Cs> auto zip(Cs &&...args) { return Zipped<Cs...>{{args...}}; }
+}; // namespace fprd

@@ -33,7 +33,7 @@ class Window : public cairo::Surface {
     /// The base flush function should be private.
     using Base::flush;
 
-   public:
+  public:
     unsigned char frame_counter;
 
     /// Create a new window.
@@ -57,18 +57,16 @@ class Window : public cairo::Surface {
         x11.flush();
     }
 
-    Window(const Window&) = delete;
-    Window(Window&&) = default;
+    Window(const Window &) = delete;
+    Window(Window &&) = default;
 
-   private:
+  private:
     /// For clean code.
     /// @param x11
     /// @param pos
     /// @param size
-    Window(x11::Connection&& x11, Position<int> pos, Area<unsigned int> size)
-        : cairo::Surface{size},
-          x11{move(x11)},
-          w{[&x11 = this->x11, pos, size]() {
+    Window(x11::Connection &&x11, Position<int> pos, Area<unsigned int> size)
+        : cairo::Surface{size}, x11{move(x11)}, w{[&x11 = this->x11, pos, size]() {
               /// Obtain the correct root window and create a new window.
               /// FIXME: The window disappears when I click on the
               /// desktop LOL.
@@ -85,31 +83,25 @@ class Window : public cairo::Surface {
                       0,
                       0,
                       False,
-                      ExposureMask | StructureNotifyMask | ButtonPressMask |
-                          ButtonReleaseMask,
+                      ExposureMask | StructureNotifyMask | ButtonPressMask | ButtonReleaseMask,
                       0,
                       False,
                       0,
                       None,
                   };
 
-                  return x11.create_window(
-                      root, {0, 0}, size, 0, CopyFromParent, InputOutput,
-                      CopyFromParent,
-                      CWOverrideRedirect | CWBackingStore | CWBackPixel, attr);
+                  return x11.create_window(root, {0, 0}, size, 0, CopyFromParent, InputOutput, CopyFromParent,
+                                           CWOverrideRedirect | CWBackingStore | CWBackPixel, attr);
               }()};
 
-              x11.change_property(w, x11.atom("_NET_WM_WINDOW_TYPE"), XA_ATOM,
-                                  32, PropModeReplace,
-                                  array<unsigned long, 1>{
-                                      x11.atom("_NET_WM_WINDOW_TYPE_DESKTOP")});
+              x11.change_property(w, x11.atom("_NET_WM_WINDOW_TYPE"), XA_ATOM, 32, PropModeReplace,
+                                  array<unsigned long, 1>{x11.atom("_NET_WM_WINDOW_TYPE_DESKTOP")});
 
               x11.map_window(w);
 
               x11.move_window(w, pos);
               return w;
           }()},
-          buf{size},
-          win{this->x11, this->w} {}
+          buf{size}, win{this->x11, this->w} {}
 };
-};  // namespace fprd
+}; // namespace fprd

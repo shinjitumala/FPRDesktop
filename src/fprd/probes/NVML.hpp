@@ -36,11 +36,10 @@ struct NVML;
 
 /// A GPU device
 /// @tparam max_procs Maximum number of processes shown.
-template <u_char max_procs>
-class Device {
+template <u_char max_procs> class Device {
     friend NVML;
 
-   public:
+  public:
     /// Our representation of a process.
     struct Process {
         string name;
@@ -66,40 +65,37 @@ class Device {
         ostream &print(ostream &os) const {
             os << setfill(' ') << setw(pid_size) << right << t.pid;
             os << " ";
-            os << setfill(' ') << setw(name_size) << left
-               << truncs<name_size>(name);
+            os << setfill(' ') << setw(name_size) << left << truncs<name_size>(name);
             os << " ";
-            os << setfill(' ') << setw(memory_size) << right
-               << (ftos<0>(t.usedGpuMemory / 1000000.0F) + "MB");
+            os << setfill(' ') << setw(memory_size) << right << (ftos<0>(t.usedGpuMemory / 1000000.0F) + "MB");
             return os;
         };
     };
 
     struct DynamicData {
-        u_char utilization;         // %
-        float memory;               // GB
-        u_char utilization_memory;  // %
-        u_char fan;                 // %
-        u_char temp;                // Celsius
-        float power;                // Watts
-        ushort clock;               // MHz
+        u_char utilization;        // %
+        float memory;              // GB
+        u_char utilization_memory; // %
+        u_char fan;                // %
+        u_char temp;               // Celsius
+        float power;               // Watts
+        ushort clock;              // MHz
 
         /// Sorted list of processes.
         /// INFO: Maximum of 'max_procs' items shown.
         vector<Process> procs;
     };
 
-   private:
+  private:
     /// The wrapped thing.
     nvmlDevice_t t;
 
-   public:
-    const string name;         // Product name
-    const float memory_total;  // GB
+  public:
+    const string name;        // Product name
+    const float memory_total; // GB
 
     Device(nvmlDevice_t t)
-        : t{t},
-          name{[t]() -> string {
+        : t{t}, name{[t]() -> string {
               array<char, 96> buf;
               nvmlDeviceGetName(t, buf.data(), buf.size());
               return buf.data();
@@ -153,12 +149,10 @@ class Device {
                 auto procs{[this]() -> vector<nvmlProcessInfo_t> {
                     array<nvmlProcessInfo_t, 16> i;
                     unsigned int c{i.size()};
-                    check(nvmlDeviceGetGraphicsRunningProcesses_v2(t, &c,
-                                                                   i.data()));
+                    check(nvmlDeviceGetGraphicsRunningProcesses_v2(t, &c, i.data()));
 
-                    sort(i.begin(), i.begin() + c, [](auto &l, auto &r) {
-                        return l.usedGpuMemory > r.usedGpuMemory;
-                    });
+                    sort(i.begin(), i.begin() + c,
+                         [](auto &l, auto &r) { return l.usedGpuMemory > r.usedGpuMemory; });
                     if (c > max_procs) {
                         return {i.begin(), i.begin() + max_procs};
                     }
@@ -180,20 +174,19 @@ class Device {
 
 /// Auto shutting down NVML instance.
 struct NVML {
-   private:
+  private:
     [[nodiscard]] auto get_device_count() const {
         unsigned int c;
         check(nvmlDeviceGetCount(&c));
         return c;
     }
 
-   public:
+  public:
     NVML() { check(nvmlInit_v2()); }
     ~NVML() { check(nvmlShutdown()); }
     NVML(const NVML &) = delete;
 
-    template <u_char max_procs>
-    [[nodiscard]] auto get_devices() const {
+    template <u_char max_procs> [[nodiscard]] auto get_devices() const {
         const auto c{get_device_count()};
         vector<Device<max_procs>> devs;
         devs.reserve(c);
@@ -206,5 +199,5 @@ struct NVML {
     }
 };
 
-};  // namespace nvml
-};  // namespace fprd
+}; // namespace nvml
+}; // namespace fprd

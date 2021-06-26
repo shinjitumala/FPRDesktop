@@ -21,16 +21,15 @@ namespace fprd {
 using namespace std;
 
 /// Our class for tracking history.
-template <short size>
-struct Data {
+template <short size> struct Data {
     using DataType = float;
     using DataArray = array<DataType, size>;
 
-   private:
+  private:
     DataArray history{};
     char position{0};
 
-   public:
+  public:
     /// Obtain the current history, newest first.
     /// @return DataArray
     DataArray get() const {
@@ -57,10 +56,9 @@ struct Data {
 /// @tparam Border
 /// @tparam FG
 /// @tparam BG
-template <short size, cairo::source Border = Color, cairo::source FG = Color,
-          cairo::source BG = Color>
+template <short size, cairo::source Border = Color, cairo::source FG = Color, cairo::source BG = Color>
 struct Graph {
-   public:
+  public:
     /// The data that is drawn.
     using Data = array<float, size>;
 
@@ -92,12 +90,10 @@ struct Graph {
         }
         for (auto i{1}; i < size - 1; i++) {
             const auto d{data[i]};
-            w.line_to(pos.offset({(offset_factor + i - 1) * interval,
-                                  area.h * (100 - d) / 100}));
+            w.line_to(pos.offset({(offset_factor + i - 1) * interval, area.h * (100 - d) / 100}));
         }
         {
-            const auto d{data[size - 2] + (data[size - 1] - data[size - 2]) *
-                                              (1 - offset_factor)};
+            const auto d{data[size - 2] + (data[size - 1] - data[size - 2]) * (1 - offset_factor)};
             w.line_to(pos.offset({area.w, area.h * (100 - d) / 100}));
         }
         w.line_to(pos.offset({area.w, area.h}));
@@ -112,4 +108,4 @@ struct Graph {
     }
 };
 
-};  // namespace fprd
+}; // namespace fprd

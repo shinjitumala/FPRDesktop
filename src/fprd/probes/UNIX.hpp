@@ -36,4 +36,4 @@ string get_name(pid_t pid) {
         return name;
     }();
 }
-};  // namespace fprd
+}; // namespace fprd

@@ -20,8 +20,7 @@ using namespace std;
 /// @tparam Float
 /// @param f
 /// @return auto
-template <u_char precision, class Float>
-auto ftos(Float f) requires is_floating_point_v<Float> {
+template <u_char precision, class Float> auto ftos(Float f) requires is_floating_point_v<Float> {
     ostringstream oss;
     oss << setprecision(precision) << fixed << f;
     return oss.str();
@@ -32,18 +31,16 @@ auto ftos(Float f) requires is_floating_point_v<Float> {
 /// @tparam w
 /// @param s
 /// @return auto
-template <size_t w>
-auto width(string&& s) {
+template <size_t w> auto width(string &&s) {
     ostringstream oss;
     oss << setfill(' ') << setw(w) << s;
     return oss.str();
 }
 
-template <size_t maxw>
-string truncs(string_view s) {
+template <size_t maxw> string truncs(string_view s) {
     if (s.size() < maxw) {
         return string{s};
     }
     return string{s.substr(0, maxw - 3)} + "...";
 };
-};  // namespace fprd
+}; // namespace fprd

@@ -32,7 +32,7 @@ namespace probe {
 /// Utility function for parsing values from UNIX human-readable files.
 /// @param is
 /// @return auto
-auto getval(istream& is) {
+auto getval(istream &is) {
     const auto l{getline(is)};
     const auto itr{l.find(':')};
     return l.substr(itr + 1, numeric_limits<size_t>::max());
@@ -89,7 +89,7 @@ auto get_cpu_lifetime_usage(size_t thread_count) -> CPUUsage {
 
     /// @return auto idle and total time.
     auto parse_line{[&]() -> CPUUsage::Usage {
-        skip_to(is, ' ');  // Skip CPU name.
+        skip_to(is, ' '); // Skip CPU name.
         ulong total{0};
         ulong idle{0};
         for (auto i{0}; i < 10; i++) {
@@ -100,7 +100,7 @@ auto get_cpu_lifetime_usage(size_t thread_count) -> CPUUsage {
             }
             total += l;
         }
-        skip_lines(is, 1);  // Skip the rest of the current line.
+        skip_lines(is, 1); // Skip the rest of the current line.
         return {total, idle};
     }};
 
@@ -109,7 +109,7 @@ auto get_cpu_lifetime_usage(size_t thread_count) -> CPUUsage {
     // Beyond the first line is all the individual threads (cores).
     const auto threads{[&] {
         vector<CPUUsage::Usage> r(thread_count);
-        for (auto& u : r) {
+        for (auto &u : r) {
             u = parse_line();
         }
         return r;
@@ -123,9 +123,9 @@ auto get_cpu_lifetime_usage(size_t thread_count) -> CPUUsage {
 /// @return auto Frequency of each thread in MHz
 auto get_cpu_freqs(size_t thread_count) {
     ifstream is{"/proc/cpuinfo"};
-    skip_lines(is, 7);  // Skip first two lines.
+    skip_lines(is, 7); // Skip first two lines.
     vector<float> freqs(thread_count);
-    for (auto& freq : freqs) {
+    for (auto &freq : freqs) {
         freq = stof(getval(is));
         skip_lines(is, 27);
     }
@@ -134,40 +134,39 @@ auto get_cpu_freqs(size_t thread_count) {
 
 /// For querying CPU related stuff.
 /// @tparam max_procs Maximum number of processes shown.
-template <size_t max_procs>
-class CPU {
+template <size_t max_procs> class CPU {
     /// All information about a thread at a certain moment.
     struct ThreadStatus {
-        float usage;  // %
-        float freq;   // GHz
+        float usage; // %
+        float freq;  // GHz
     };
 
     /// For tracking the usage of processes.
     struct BasicProcess {
         pid_t pid;
-        long use;  // lifetime usage.
+        long use; // lifetime usage.
     };
 
     /// Used when sorting processes.
     struct ProcessUsage : public BasicProcess {
-        float usage;  // % current usage.
+        float usage; // % current usage.
     };
 
-   public:
+  public:
     /// Only created for processes that are above 0% usage.
     struct Process : public ProcessUsage {
         string name;
         char mode;
-        ushort mem;  // MB
+        ushort mem; // MB
 
-       private:
+      private:
         static constexpr auto pidw{5};
         static constexpr auto mw{4};
         static constexpr auto namew{20};
         static constexpr auto usagew{7};
         static constexpr auto memw{9};
 
-       public:
+      public:
         static string header() {
             ostringstream os;
             os << setfill(' ') << right << setw(pidw) << "PID";
@@ -182,41 +181,37 @@ class CPU {
             return os.str();
         }
 
-        bool operator==(const Process& rhs) const {
-            return this->pid == rhs.pid;
-        }
+        bool operator==(const Process &rhs) const { return this->pid == rhs.pid; }
 
-        ostream& print(ostream& os) const {
+        ostream &print(ostream &os) const {
             os << setfill(' ') << right << setw(pidw) << this->pid;
             os << " ";
             os << setfill(' ') << right << setw(mw) << mode;
             os << " ";
             os << setfill(' ') << left << setw(namew) << truncs<namew>(name);
             os << " ";
-            os << setfill(' ') << right << setw(usagew)
-               << (ftos<2>(this->usage) + "%");
+            os << setfill(' ') << right << setw(usagew) << (ftos<2>(this->usage) + "%");
             os << " ";
-            os << setfill(' ') << right << setw(memw)
-               << (to_string(mem) + "MB");
+            os << setfill(' ') << right << setw(memw) << (to_string(mem) + "MB");
             return os;
         }
 
-       private:
+      private:
         using BasicProcess::use;
     };
 
     struct DynamicData {
-        vector<ThreadStatus> threads;  // Hard-coded thread count
-        ThreadStatus avg;              // Average usage and frequencies.
-        short temp;                    // Celsius
-        int mem_free;                  // KB
+        vector<ThreadStatus> threads; // Hard-coded thread count
+        ThreadStatus avg;             // Average usage and frequencies.
+        short temp;                   // Celsius
+        int mem_free;                 // KB
 
-        vector<Process> procs;  // Processes.
+        vector<Process> procs; // Processes.
     };
 
     const string name;
     const size_t thread_count;
-    const int mem_total;  // KB
+    const int mem_total; // KB
 
     /// Save the LIFETIME usage for all processes in the system.
     /// This is needed to compute the CURRENT usage.
@@ -225,7 +220,7 @@ class CPU {
     CPUUsage prev_usage;
 
     CPU() : CPU{get_cpu_info()} {}
-    CPU(const CPU&) = delete;
+    CPU(const CPU &) = delete;
 
     [[nodiscard]] auto update() {
         dbg(const auto tp{now()});
@@ -235,21 +230,17 @@ class CPU {
 
         const auto freqs{get_cpu_freqs(thread_count)};
         const auto usage{get_cpu_lifetime_usage(thread_count)};
-        for (auto [ts, freq, usage, prev_usage] :
-             zip(data.threads, freqs, usage.threads, prev_usage.threads)) {
+        for (auto [ts, freq, usage, prev_usage] : zip(data.threads, freqs, usage.threads, prev_usage.threads)) {
             ts.usage = prev_usage.get_current_usage(usage);
             ts.freq = freq;
 
             prev_usage = usage;
         }
-        auto [d_total_use, d_total_idle]{
-            prev_usage.overall.get_current_usage_pair(usage.overall)};
+        auto [d_total_use, d_total_idle]{prev_usage.overall.get_current_usage_pair(usage.overall)};
         data.avg.usage = (float)d_total_use / d_total_idle;
         data.avg.freq = [&freqs] {
             float avg{0};
-            for_each(
-                freqs.begin(), freqs.end(),
-                [&avg, count = freqs.size()](auto f) { avg += f / count; });
+            for_each(freqs.begin(), freqs.end(), [&avg, count = freqs.size()](auto f) { avg += f / count; });
             return avg;
         }();
         prev_usage.overall = usage.overall;
@@ -272,11 +263,9 @@ class CPU {
         return data;
     }
 
-   private:
+  private:
     CPU(pair<string, size_t> name_thread_count)
-        : name{name_thread_count.first},
-          thread_count{name_thread_count.second},
-          mem_total{[] {
+        : name{name_thread_count.first}, thread_count{name_thread_count.second}, mem_total{[] {
               ifstream is{"/proc/meminfo"};
               // Get total memory (1st line).
               return stoi(getval(is));
@@ -285,20 +274,19 @@ class CPU {
     }
 
     auto is_number(string_view s) {
-        return all_of(s.begin(), s.end(),
-                      [](auto c) { return '0' <= c && c <= '9'; });
+        return all_of(s.begin(), s.end(), [](auto c) { return '0' <= c && c <= '9'; });
     }
 
     auto read_proc(unsigned long current_cpu_usage) {
         const auto sorted{[&] {
             vector<ProcessUsage> procs;
-            for (const auto& d : directory_iterator("/proc")) {
+            for (const auto &d : directory_iterator("/proc")) {
                 // Skip non-directories
                 if (!d.is_directory()) {
                     continue;
                 }
                 // Skip directories that are not PIDs (number).
-                const auto& p{d.path()};
+                const auto &p{d.path()};
                 if (!is_number(p.stem().string())) {
                     continue;
                 }
@@ -307,10 +295,9 @@ class CPU {
                 // First data is the PID.
                 pid_t pid{getint(is)};
 
-                auto& bproc{[pid, this]() -> decltype(auto) {
-                    if (const auto itr{
-                            find_if(tracked_procs.begin(), tracked_procs.end(),
-                                    [pid](auto& p) { return p.pid == pid; })};
+                auto &bproc{[pid, this]() -> decltype(auto) {
+                    if (const auto itr{find_if(tracked_procs.begin(), tracked_procs.end(),
+                                               [pid](auto &p) { return p.pid == pid; })};
                         itr != tracked_procs.end()) {
                         return *itr;
                     }
@@ -342,20 +329,17 @@ class CPU {
                     continue;
                 }
 
-                usage.usage = static_cast<float>(diff) /
-                              static_cast<float>(current_cpu_usage) * 100;
+                usage.usage = static_cast<float>(diff) / static_cast<float>(current_cpu_usage) * 100;
 
                 procs.push_back(usage);
             }
 
             // Sort the processes by usage.
-            sort(procs.begin(), procs.end(),
-                 [&](auto& lhs, auto& rhs) { return lhs.usage > rhs.usage; });
+            sort(procs.begin(), procs.end(), [&](auto &lhs, auto &rhs) { return lhs.usage > rhs.usage; });
 
             // Shrink the vector to the maximum size if needed.
             if (procs.size() > max_procs) {
-                return vector<ProcessUsage>(procs.begin(),
-                                            procs.begin() + max_procs);
+                return vector<ProcessUsage>(procs.begin(), procs.begin() + max_procs);
             }
             return procs;
         }()};
@@ -373,8 +357,7 @@ class CPU {
             for (auto i{0}; i < 7; i++) {
                 skip_to(is, ' ');
             }
-            proc.mem = static_cast<float>((double)getulong(is) * 1e-6 *
-                                          (double)::sysconf(_SC_PAGE_SIZE));
+            proc.mem = static_cast<float>((double)getulong(is) * 1e-6 * (double)::sysconf(_SC_PAGE_SIZE));
 
             procs.push_back(proc);
         }
@@ -382,5 +365,5 @@ class CPU {
         return procs;
     }
 };
-};  // namespace probe
-};  // namespace fprd
+}; // namespace probe
+}; // namespace fprd

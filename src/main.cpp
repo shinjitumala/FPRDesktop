@@ -26,7 +26,7 @@ atomic<bool> run{true};
 /// @return auto
 auto stop(int signal) { run = false; }
 
-}  // namespace fprd
+} // namespace fprd
 
 int main(int argc, char **argv) {
     using namespace ::fprd;

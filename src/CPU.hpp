@@ -18,7 +18,7 @@
 #include <fprd/util/AnimatedValue.hpp>
 #include <fprd/util/ranges.hpp>
 
-#include "fprd/draw/animated/AnimatedList.hpp"
+#include <fprd/draw/animated/AnimatedList.hpp>
 
 namespace fprd {
 using namespace std;
@@ -27,7 +27,7 @@ class CPU {
     using Probe = probe::CPU<max_procs>;
     using ProcList = AnimatedList<typename Probe::Process, max_procs>;
 
-   public:
+  public:
     using DynamicData = typename Probe::DynamicData;
     static constexpr auto probe_interval{1s};
 
@@ -35,20 +35,17 @@ class CPU {
     static constexpr auto cores_row{theme::medium_area(w)};
     static constexpr auto cores_rows{4};
     static constexpr Area<float> graph_area{w, 32};
-    static constexpr Area<float> procs_area{w,
-                                            (max_procs + 1) * theme::small_h};
+    static constexpr Area<float> procs_area{w, (max_procs + 1) * theme::small_h};
 
-    static constexpr Area<float> area{w, cores_row.h* cores_rows +
-                                             procs_area.h + theme::large_h + 3 +
+    static constexpr Area<float> area{w, cores_row.h *cores_rows + procs_area.h + theme::large_h + 3 +
                                              graph_area.h * 2};
 
     const Position<int> pos;
 
-   private:
+  private:
     Probe probe;
 
-    vector<AnimatedBar<Orientation::horizontal, Direction::positive>>
-        core_usages;
+    vector<AnimatedBar<Orientation::horizontal, Direction::positive>> core_usages;
     vector<Text<VerticalAlign::center>> core_freqs;
     vector<AnimatedValue<ushort>> core_freqs_v;
     AnimatedGraph<128> usage;
@@ -60,27 +57,23 @@ class CPU {
     const string total_memory;
     unique_ptr<ProcList> procs;
 
-   public:
+  public:
     CPU(Position<int> pos)
-        : pos{pos},
-          probe{},
-          usage{{{0, theme::large_h + 3 + cores_row.h * cores_rows},
-                 graph_area,
-                 theme::grey,
-                 1,
-                 theme::red,
-                 theme::black}},
-          memory{{{0, theme::large_h + 3 + cores_row.h * cores_rows +
-                          graph_area.h},
+        : pos{pos}, probe{}, usage{{{0, theme::large_h + 3 + cores_row.h * cores_rows},
+                                    graph_area,
+                                    theme::grey,
+                                    1,
+                                    theme::red,
+                                    theme::black}},
+          memory{{{0, theme::large_h + 3 + cores_row.h * cores_rows + graph_area.h},
                   graph_area,
                   theme::grey,
                   1,
                   theme::green,
                   theme::black}},
-          total_memory{"/" + ftos<1>((float)probe.mem_total / 1000000) + "GB"} {
-    }
+          total_memory{"/" + ftos<1>((float)probe.mem_total / 1000000) + "GB"} {}
 
-    void update_data(const DynamicData& d) {
+    void update_data(const DynamicData &d) {
         for (auto [ts, b, f] : zip(d.threads, core_usages, core_freqs_v)) {
             b.update(ts.usage * 100);
             f.update(ts.freq);
@@ -96,8 +89,8 @@ class CPU {
         procs->update(d.procs);
     }
 
-    void draw(Window& w, bool new_data) {
-        for (auto& b : core_usages) {
+    void draw(Window &w, bool new_data) {
+        for (auto &b : core_usages) {
             b.draw(w);
         }
         for (auto [v, f] : zip(core_freqs_v, core_freqs)) {
@@ -106,8 +99,7 @@ class CPU {
         usage.draw(w);
         memory.draw(w);
         procs->draw(w);
-        memory_value.draw(
-            w, ftos<3>((float)memory_v.draw() / 1000000) + total_memory);
+        memory_value.draw(w, ftos<3>((float)memory_v.draw() / 1000000) + total_memory);
         temp.draw(w, ftos<1>(temp_v.draw()) + "℃");
     }
 
@@ -116,8 +108,7 @@ class CPU {
     Window create_window() {
         Window w{":0.0", pos, area};
 
-        Text<VerticalAlign::center> t{
-            {&theme::bold, {0, 0}, theme::large_area(area.w)}, theme::red};
+        Text<VerticalAlign::center> t{{&theme::bold, {0, 0}, theme::large_area(area.w)}, theme::red};
         draw_text_once(w, t, [&] {
             const auto name{probe.name};
             const string_view start{"Core(TM)"};
@@ -129,8 +120,7 @@ class CPU {
         const auto cores_per_row{probe.thread_count / cores_rows};
 
         Margin<float> m{1, 1};
-        const Area<float> core_area{
-            cores_row.scale({1.0F / cores_per_row, 1.0F})};
+        const Area<float> core_area{cores_row.scale({1.0F / cores_per_row, 1.0F})};
         Bar<Orientation::horizontal, Direction::positive> bbase{
             .area = core_area.pad(m),
             .border_width = 1,
@@ -138,14 +128,12 @@ class CPU {
             .empty = theme::black,
             .filled = theme::red,
         };
-        Text<VerticalAlign::center> tc{{&theme::normal, {}, core_area.pad(m)},
-                                       theme::white};
+        Text<VerticalAlign::center> tc{{&theme::normal, {}, core_area.pad(m)}, theme::white};
         for (auto i{0U}; i < probe.thread_count; i++) {
             const auto x{i / cores_per_row};
             const auto y{i % cores_per_row};
 
-            const Position<float> pos{x * core_area.w,
-                                      y * core_area.h + theme::large_h + 3};
+            const Position<float> pos{x * core_area.w, y * core_area.h + theme::large_h + 3};
             bbase.pos = pos.pad(m);
             core_usages.emplace_back(bbase);
             tc.pos = pos;
@@ -156,19 +144,14 @@ class CPU {
         memory_value = tc;
         memory_value.area = theme::medium_area(area.w);
         memory_value.pos = memory_value.area.vertical_center(
-            Position<double>{0, theme::large_h + 3 + core_area.h * cores_rows +
-                                    graph_area.h * 1.5});
+            Position<double>{0, theme::large_h + 3 + core_area.h * cores_rows + graph_area.h * 1.5});
 
         temp = memory_value;
         temp.pos = temp.area.vertical_center(
-            Position<double>{0, theme::large_h + 3 + core_area.h * cores_rows +
-                                    graph_area.h * 0.5});
+            Position<double>{0, theme::large_h + 3 + core_area.h * cores_rows + graph_area.h * 0.5});
 
         procs = make_unique<ProcList>(
-            w,
-            Position<float>{0, cores_rows * core_area.h + theme::large_h + 3 +
-                                   graph_area.h * 2},
-            procs_area);
+            w, Position<float>{0, cores_rows * core_area.h + theme::large_h + 3 + graph_area.h * 2}, procs_area);
 
         return w;
     };
@@ -178,9 +161,9 @@ class CPUWindow {
     CPU c;
     Threads<CPU> t;
 
-   public:
+  public:
     static constexpr Area<int> area{CPU::area};
 
-    CPUWindow(atomic<bool>& run, Position<int> pos) : c{pos}, t{run, c} {}
+    CPUWindow(atomic<bool> &run, Position<int> pos) : c{pos}, t{run, c} {}
 };
-};  // namespace fprd
+}; // namespace fprd

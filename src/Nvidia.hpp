@@ -30,24 +30,18 @@ using namespace ::std::numbers;
 namespace widget {
 using namespace theme;
 class Nvidia {
-   public:
-    static constexpr Area<float> size{
-        312, 312 + L3_h *(1 + nvml::Device::max_procs)};
+  public:
+    static constexpr Area<float> size{312, 312 + L3_h *(1 + nvml::Device::max_procs)};
 
-   private:
+  private:
     nvml::Device &d;
     nvml::Device::DynamicData data;
 
-    inline static const Image gpu{
-        resources / "icons" / "Computer" / "004-video-card.png", green};
-    inline static const Image mem_i{
-        resources / "icons" / "Computer" / "017-processor.png", white};
-    inline static const Image temp_i{
-        resources / "icons" / "Nature" / "049-thermometer.png", red};
-    inline static const Image power_i{
-        resources / "icons" / "Nature" / "032-lightning.png", yellow};
-    inline static const Image fan_i{
-        resources / "icons" / "Computer" / "054-cooler.png", blue};
+    inline static const Image gpu{resources / "icons" / "Computer" / "004-video-card.png", green};
+    inline static const Image mem_i{resources / "icons" / "Computer" / "017-processor.png", white};
+    inline static const Image temp_i{resources / "icons" / "Nature" / "049-thermometer.png", red};
+    inline static const Image power_i{resources / "icons" / "Nature" / "032-lightning.png", yellow};
+    inline static const Image fan_i{resources / "icons" / "Computer" / "054-cooler.png", blue};
 
     ArcBar<true> util;
     Text<VerticalAlign::right> util_t;
@@ -71,7 +65,7 @@ class Nvidia {
     float current_power{};
     float current_memory{};
 
-   public:
+  public:
     Nvidia(FPRWindow &w, nvml::Device &d, Position<float> pos) : d{d} {
         constexpr auto arc_bar_width{50};
         constexpr Margin<float> arc_bar_m{L3_m};
@@ -102,15 +96,13 @@ class Nvidia {
         const auto arc_text_w{arc_bar_width - 2 * arc.border_width};
         t.area = Area<float>(arc_text_w, 24).pad(arc_bar_m);
 
-        t.pos =
-            t.area.bottom_right(pos.offset({size.w * 0.25F, size.w * 0.25F}));
+        t.pos = t.area.bottom_right(pos.offset({size.w * 0.25F, size.w * 0.25F}));
         util_t = t;
 
         t.pos = t.area.top_right(pos.offset({size.w * 0.25F, size.w * 0.75F}));
         mem_t = t;
 
-        t.pos =
-            t.area.bottom_left(pos.offset({size.w * 0.75F, size.w * 0.25F}));
+        t.pos = t.area.bottom_left(pos.offset({size.w * 0.75F, size.w * 0.25F}));
         temp_t = t;
 
         t.pos = pos.offset({size.w * 0.75F, size.w * 0.75F});
@@ -134,20 +126,10 @@ class Nvidia {
 
         // Icons
         const Area<float> icon_area{size.w * 0.125, size.w * 0.125};
-        w.draw_image(gpu,
-                     icon_area.bottom_right(
-                         pos.offset({size.w * 0.375, size.w * 0.375})),
-                     icon_area);
-        w.draw_image(
-            mem_i,
-            icon_area.top_right(pos.offset({size.w * 0.375, size.w * 0.625})),
-            icon_area);
-        w.draw_image(
-            temp_i,
-            icon_area.bottom_left(pos.offset({size.w * 0.625, size.w * 0.375})),
-            icon_area);
-        w.draw_image(fan_i, pos.offset({size.w * 0.625, size.w * 0.625}),
-                     icon_area);
+        w.draw_image(gpu, icon_area.bottom_right(pos.offset({size.w * 0.375, size.w * 0.375})), icon_area);
+        w.draw_image(mem_i, icon_area.top_right(pos.offset({size.w * 0.375, size.w * 0.625})), icon_area);
+        w.draw_image(temp_i, icon_area.bottom_left(pos.offset({size.w * 0.625, size.w * 0.375})), icon_area);
+        w.draw_image(fan_i, pos.offset({size.w * 0.625, size.w * 0.625}), icon_area);
 
         // Other data
         DynamicText<VerticalAlign::left> dt;
@@ -159,8 +141,7 @@ class Nvidia {
         dt.pos = pos.offset({size.w * 0.25, size.w * 0.375});
         clock = dt;
 
-        dt.pos =
-            dt.area.bottom_left(pos.offset({size.w * 0.25, size.w * 0.625}));
+        dt.pos = dt.area.bottom_left(pos.offset({size.w * 0.25, size.w * 0.625}));
         mem_t2 = dt;
 
         dt.pos = dt.area.top_right(pos.offset({size.w * 0.75, size.w * 0.375}));
@@ -196,7 +177,7 @@ class Nvidia {
     void draw(FPRWindow &w) {
         if (auto [updated, new_data]{d.get_dynamic_data()}; updated) {
             // Only run when there is new data.
-            data = new_data;  // Copy the new data.
+            data = new_data; // Copy the new data.
 
             util.target = data.utilization;
             mem.target = data.utilization_memory;
@@ -217,8 +198,7 @@ class Nvidia {
                         return p.name.substr(0, max_name_len - 3) + "...";
                     }();
                     oss << " ";
-                    oss << setfill(' ') << setw(7) << right
-                        << (ftos<0>((float)p.t.usedGpuMemory * 1e-6) + "MB");
+                    oss << setfill(' ') << setw(7) << right << (ftos<0>((float)p.t.usedGpuMemory * 1e-6) + "MB");
                     return oss.str();
                 }()};
                 proc.update(w, s.c_str());
@@ -227,8 +207,7 @@ class Nvidia {
             const auto procs_size{procs.size()};
             const auto all_procs_size{data.procs.size()};
             if (all_procs_size < procs_size) {
-                for (const auto &proc : procs | views::reverse |
-                                            take(procs_size - all_procs_size)) {
+                for (const auto &proc : procs | views::reverse | take(procs_size - all_procs_size)) {
                     proc.update(w, "");
                 }
             }
@@ -248,12 +227,11 @@ class Nvidia {
         temp_t.update(w, ftos<0>(temp.current) + "℃");
         fan_t.update(w, ftos<0>(fan.current) + "%");
 
-        mem_t2.update(
-            w, ftos<2>(current_memory) + "/" + ftos<0>(d.memory_total) + "GB");
+        mem_t2.update(w, ftos<2>(current_memory) + "/" + ftos<0>(d.memory_total) + "GB");
 
         power.update(w, ftos<2>(current_power) + "W");
         clock.update(w, width<7>(to_string(current_clock) + "MHz"));
     }
 };
-}  // namespace widget
-}  // namespace fprd
+} // namespace widget
+} // namespace fprd

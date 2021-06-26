@@ -34,9 +34,8 @@ struct TextBase {
         w.move_to([this, &w, font_size, s]() {
             const auto te{w.get_text_extent(s)};
             dbg(if (te.width > area.w || te.height > area.h) {
-                dbg_out("WARNING: Text exceeds draw area. Area: "
-                        << area << ", Extent: {" << te.width << ", "
-                        << te.height << "}");
+                dbg_out("WARNING: Text exceeds draw area. Area: " << area << ", Extent: {" << te.width << ", "
+                                                                  << te.height << "}");
             });
             const auto height{area.h};
             const auto width{te.x_advance};
@@ -44,8 +43,7 @@ struct TextBase {
                 return pos.offset<double>({0, height});
             }
             if constexpr (V == VerticalAlign::center) {
-                return pos.offset<double>(
-                    {area.w / 2 - width / 2 - te.x_bearing, height});
+                return pos.offset<double>({area.w / 2 - width / 2 - te.x_bearing, height});
             }
             if constexpr (V == VerticalAlign::right) {
                 return pos.offset<double>({area.w - width, height});
@@ -58,13 +56,10 @@ struct TextBase {
 /// A text that does not move or change color.
 /// @tparam V
 /// @tparam FG
-template <VerticalAlign V, cairo::source FG = Color>
-struct Text : public TextBase {
+template <VerticalAlign V, cairo::source FG = Color> struct Text : public TextBase {
     FG fg;
 
-    void draw(Window &w, string_view text) const {
-        draw_text<V, FG>(w, fg, text);
-    }
+    void draw(Window &w, string_view text) const { draw_text<V, FG>(w, fg, text); }
 };
 
 /// A text that does not move or change color but gets its area filled with BG
@@ -99,8 +94,5 @@ concept text = requires(T &t) {
 /// @param t
 /// @param text
 /// @return auto
-template <text Text>
-auto draw_text_once(Window &w, const Text &t, string_view text) {
-    t.draw(w, text);
-}
-}  // namespace fprd
+template <text Text> auto draw_text_once(Window &w, const Text &t, string_view text) { t.draw(w, text); }
+} // namespace fprd

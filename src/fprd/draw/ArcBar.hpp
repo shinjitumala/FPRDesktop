@@ -41,8 +41,8 @@ struct ArcBarBase {
 /// @tparam Border
 /// @tparam Empty
 /// @tparam Filled
-template <ArcBarDirection d, cairo::source Border = Color,
-          cairo::source Empty = Color, cairo::source Filled = Color>
+template <ArcBarDirection d, cairo::source Border = Color, cairo::source Empty = Color,
+          cairo::source Filled = Color>
 struct ArcBar : public ArcBarBase {
     Border border;
     Empty empty;
@@ -58,19 +58,17 @@ struct ArcBar : public ArcBarBase {
         arc<true>(w, center, radious - bar_width / 2, start, end);
         w.stroke();
         w.set_source(filled);
-        arc<true>(w, center, radious - bar_width / 2, start,
-                  start + (end - start) * filled_percent / 100);
+        arc<true>(w, center, radious - bar_width / 2, start, start + (end - start) * filled_percent / 100);
         w.stroke();
         w.set_source(border);
         w.set_line_width(border_width);
         arc<true>(w, center, radious - border_width / 2, start, end);
-        arc<false>(w, center, radious - bar_width + border_width / 2, end,
-                   start);
+        arc<false>(w, center, radious - bar_width + border_width / 2, end, start);
         w.close_path();
         w.stroke();
     }
 
-   private:
+  private:
     /// Internal utility function.
     /// @tparam positive As in the fill direction. Dependant on Direction d.
     /// @param w
@@ -78,9 +76,7 @@ struct ArcBar : public ArcBarBase {
     /// @param radious
     /// @param start
     /// @param end
-    template <bool positive>
-    void arc(Window &w, Position<float> center, float radious, float start,
-             float end) {
+    template <bool positive> void arc(Window &w, Position<float> center, float radious, float start, float end) {
         if constexpr ((d == ArcBarDirection::clock_wise && positive) ||
                       (d == ArcBarDirection::counter_clock_wise && !positive)) {
             w.arc(center, radious, start, end);
@@ -89,4 +85,4 @@ struct ArcBar : public ArcBarBase {
         }
     }
 };
-}  // namespace fprd
+} // namespace fprd

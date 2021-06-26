@@ -12,16 +12,13 @@
 #include <fprd/Types.hpp>
 
 namespace fprd {
-template <number I>
-class AnimatedValue {
+template <number I> class AnimatedValue {
     I current{0};
     I increment{0};
 
-   public:
+  public:
     void update(I target_value) {
-        increment =
-            (static_cast<float>(target_value) - static_cast<float>(current)) /
-            fps;
+        increment = (static_cast<float>(target_value) - static_cast<float>(current)) / fps;
     }
 
     I draw() {
@@ -29,4 +26,4 @@ class AnimatedValue {
         return current;
     }
 };
-};  // namespace fprd
+}; // namespace fprd

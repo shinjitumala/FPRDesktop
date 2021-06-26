@@ -28,4 +28,4 @@ auto diff(const chrono::time_point<chrono::high_resolution_clock> &tp) {
     using namespace std::chrono;
     return duration_cast<milliseconds>(now() - tp).count();
 }
-}  // namespace fprd
+} // namespace fprd

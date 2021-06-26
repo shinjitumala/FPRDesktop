@@ -30,8 +30,7 @@ constexpr string_view nl{"\n"};
 /// @tparam T
 template <class T>
 concept Printable = requires(const T &t, ostream &os) {
-    { t.print(os) }
-    ->same_as<ostream &>;
+    { t.print(os) } -> same_as<ostream &>;
 };
 
 /// An operator overload for printable types defined by SWORD.
@@ -39,10 +38,7 @@ concept Printable = requires(const T &t, ostream &os) {
 /// @param os
 /// @param p
 /// @return ostream&
-template <Printable P>
-ostream &operator<<(ostream &os, const P &p) {
-    return p.print(os);
-};
+template <Printable P> ostream &operator<<(ostream &os, const P &p) { return p.print(os); };
 
 /// Constants used for printing file location.
 constexpr auto filename_len{16};
@@ -55,13 +51,10 @@ constexpr auto location_len{filename_len + 2 * num_len + 2};
 /// @param column
 /// @param filename
 /// @return ostream&
-ostream &print_location(ostream &os, const uint line, const uint column,
-                        const string_view filename) {
+ostream &print_location(ostream &os, const uint line, const uint column, const string_view filename) {
     if (filename.size() > filename_len) {
-        const auto short_filename{filename.substr(
-            filename.size() - filename_len + 3, filename_len - 3)};
-        os << setw(filename_len - short_filename.size()) << setfill(' ')
-           << right << "..." << short_filename;
+        const auto short_filename{filename.substr(filename.size() - filename_len + 3, filename_len - 3)};
+        os << setw(filename_len - short_filename.size()) << setfill(' ') << right << "..." << short_filename;
     } else {
         os << setw(filename_len) << setfill(' ') << right << filename;
     }
@@ -79,4 +72,4 @@ ostream &print_location(ostream &os, const uint line, const uint column,
 ostream &operator<<(ostream &os, const source_location loc) {
     return print_location(os, loc.line(), loc.column(), loc.file_name());
 }
-};  // namespace fprd
+}; // namespace fprd

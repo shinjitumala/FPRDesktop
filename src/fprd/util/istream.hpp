@@ -17,7 +17,7 @@ using namespace ::std;
 /// @param is
 /// @param lines
 /// @return auto
-auto skip_lines(istream& is, unsigned char lines) {
+auto skip_lines(istream &is, unsigned char lines) {
     for (unsigned char i{0}; i < lines; i++) {
         is.ignore(numeric_limits<streamsize>::max(), '\n');
     }
@@ -25,7 +25,7 @@ auto skip_lines(istream& is, unsigned char lines) {
 
 /// @param is
 /// @return auto
-auto getline(istream& is) {
+auto getline(istream &is) {
     string s;
     getline(is, s);
     return s;
@@ -33,7 +33,7 @@ auto getline(istream& is) {
 
 /// @param is
 /// @return auto
-auto getstring(istream& is) {
+auto getstring(istream &is) {
     string s;
     is >> s;
     return s;
@@ -41,7 +41,7 @@ auto getstring(istream& is) {
 
 /// @param is
 /// @return auto
-auto getfloat(istream& is) {
+auto getfloat(istream &is) {
     float f;
     is >> f;
     return f;
@@ -49,7 +49,7 @@ auto getfloat(istream& is) {
 
 /// @param is
 /// @return auto
-auto getulong(istream& is) {
+auto getulong(istream &is) {
     ulong l;
     is >> l;
     return l;
@@ -57,7 +57,7 @@ auto getulong(istream& is) {
 
 /// @param is
 /// @return auto
-auto getuint(istream& is) {
+auto getuint(istream &is) {
     uint i;
     is >> i;
     return i;
@@ -65,7 +65,7 @@ auto getuint(istream& is) {
 
 /// @param is
 /// @return auto
-auto getint(istream& is) {
+auto getint(istream &is) {
     int i;
     is >> i;
     return i;
@@ -73,7 +73,7 @@ auto getint(istream& is) {
 
 /// @param is
 /// @return auto
-auto getchar(istream& is) {
+auto getchar(istream &is) {
     char c;
     is >> c;
     return c;
@@ -82,7 +82,5 @@ auto getchar(istream& is) {
 /// @param is
 /// @param delim
 /// @return auto
-auto skip_to(istream& is, char delim) {
-    is.ignore(numeric_limits<streamsize>::max(), delim);
-}
-};  // namespace fprd
+auto skip_to(istream &is, char delim) { is.ignore(numeric_limits<streamsize>::max(), delim); }
+}; // namespace fprd

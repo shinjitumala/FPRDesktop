@@ -34,8 +34,8 @@ enum class Direction {
 /// @tparam Frame
 /// @tparam Empty
 /// @tparam Filled
-template <Orientation o, Direction d, cairo::source Frame = Color,
-          cairo::source Empty = Color, cairo::source Filled = Color>
+template <Orientation o, Direction d, cairo::source Frame = Color, cairo::source Empty = Color,
+          cairo::source Filled = Color>
 struct Bar {
     Position<float> pos;
     Area<float> area;
@@ -82,4 +82,4 @@ struct Bar {
         w.stroke();
     }
 };
-};  // namespace fprd
+}; // namespace fprd

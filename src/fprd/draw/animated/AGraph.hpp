@@ -18,8 +18,7 @@ namespace fprd {
 /// @tparam Border
 /// @tparam FG
 /// @tparam BG
-template <short size, cairo::source Border = Color, cairo::source FG = Color,
-          cairo::source BG = Color>
+template <short size, cairo::source Border = Color, cairo::source FG = Color, cairo::source BG = Color>
 class AnimatedGraph : public Graph<size, Border, FG, BG> {
     using Base = Graph<size, Border, FG, BG>;
     using Base::draw;
@@ -34,7 +33,7 @@ class AnimatedGraph : public Graph<size, Border, FG, BG> {
         /// The current position.
         char position{0};
 
-       public:
+      public:
         /// Obtain the current history, newest first.
         /// @return DataArray
         DataArray get() const {
@@ -59,20 +58,20 @@ class AnimatedGraph : public Graph<size, Border, FG, BG> {
     /// Stored history.
     Data current;
 
-   public:
+  public:
     /// Initialize from a Graph.
     /// @param graph
     AnimatedGraph(Base graph) : Base{graph}, current{} {};
     /// Copying is not allowed.
-    AnimatedGraph(const AnimatedGraph&) = delete;
+    AnimatedGraph(const AnimatedGraph &) = delete;
     /// Moving is allowed, however.
-    AnimatedGraph(AnimatedGraph&&) noexcept = default;
+    AnimatedGraph(AnimatedGraph &&) noexcept = default;
 
     /// Update the target percentage.
     /// Currently hard-coded such that this function must be called every second
     /// or it breaks.
     /// TODO: Make the update interval adjustable via template parameters.
-    /// @param new_value 
+    /// @param new_value
     void update(float new_value) {
         if (100 < new_value) {
             dbg::err << "Out of bounds: 100 < " << new_value << endl;
@@ -87,9 +86,7 @@ class AnimatedGraph : public Graph<size, Border, FG, BG> {
     }
 
     /// Call this every frame.
-    /// @param w 
-    void draw(Window& w) {
-        Base::draw(w, (float)w.frame_counter / fps, current.get());
-    }
+    /// @param w
+    void draw(Window &w) { Base::draw(w, (float)w.frame_counter / fps, current.get()); }
 };
-};  // namespace fprd
+}; // namespace fprd

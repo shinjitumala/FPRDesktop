@@ -25,36 +25,28 @@ using namespace ::std;
 /// The definition of a drawable type in fprd.
 /// @tparam D
 template <class D>
-concept drawable = requires(D &d, Window &w,
-                            const typename D::DynamicData &data) {
-    { d.update_data(data) }
-    ->same_as<void>;
-    { d.draw(w, declval<bool>()) }
-    ->same_as<void>;
-    { d.get_data() }
-    ->same_as<typename D::DynamicData>;
-    { d.create_window() }
-    ->same_as<Window>;
+concept drawable = requires(D &d, Window &w, const typename D::DynamicData &data) {
+    { d.update_data(data) } -> same_as<void>;
+    { d.draw(w, declval<bool>()) } -> same_as<void>;
+    { d.get_data() } -> same_as<typename D::DynamicData>;
+    { d.create_window() } -> same_as<Window>;
 }
 &&is_same_v<decltype(D::probe_interval), const seconds>;
 
-template <drawable D>
-class Threads {
+template <drawable D> class Threads {
     using DynamicData = typename D::DynamicData;
 
-    mutex m;          /// Mutex for our buffer.
-    DynamicData buf;  /// Data buffer.
+    mutex m;         /// Mutex for our buffer.
+    DynamicData buf; /// Data buffer.
 
     /// The thread for fetching new data.
     thread data;
     /// The thread for draw calls to X11.
     thread draw;
 
-   public:
+  public:
     Threads(atomic<bool> &running, D &d)
-        : m{},
-          data{[&running, &mtx = this->m, &buf = this->buf,
-                interval = D::probe_interval, &d] {
+        : m{}, data{[&running, &mtx = this->m, &buf = this->buf, interval = D::probe_interval, &d] {
               while (running) {
                   const auto tp{now() + interval};
                   const auto data{d.get_data()};
@@ -86,14 +78,12 @@ class Threads {
                   w.flush();
 
                   if (now() >= tp) {
-                      cerr << "Frame is late by "
-                           << duration_cast<milliseconds>(now() - tp).count()
-                           << "ms!" << endl;
+                      cerr << "Frame is late by " << duration_cast<milliseconds>(now() - tp).count() << "ms!"
+                           << endl;
                   }
                   this_thread::sleep_until(tp);
                   frame_counter++;
-                  frame_counter %=
-                      fps * duration_cast<seconds>(D::probe_interval).count();
+                  frame_counter %= fps * duration_cast<seconds>(D::probe_interval).count();
               }
           }} {}
 
@@ -102,4 +92,4 @@ class Threads {
         data.join();
     }
 };
-};  // namespace fprd
+}; // namespace fprd
