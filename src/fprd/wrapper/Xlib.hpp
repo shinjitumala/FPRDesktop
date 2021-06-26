@@ -60,6 +60,8 @@ class Window {
 
     /// The connetion that created this window.
     const Connection &c;
+
+   public:
     /// Must be optional to allow moving.
     optional<::Window> id;
 
@@ -68,7 +70,6 @@ class Window {
     /// @param id
     Window(const Connection &c, ::Window id) : c{c}, id{id} {}
 
-  public:
     /// Copying is disallowed.
     Window(const Window &) = delete;
     /// Moving is allowed however.

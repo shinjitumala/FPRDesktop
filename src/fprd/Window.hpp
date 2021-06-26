@@ -20,6 +20,7 @@ using namespace std;
 class Window : public cairo::Surface {
     using Base = cairo::Surface;
 
+   public:
     /// Our connection to the X11 server.
     x11::Connection x11;
     /// The X11 window we create.
@@ -33,7 +34,6 @@ class Window : public cairo::Surface {
     /// The base flush function should be private.
     using Base::flush;
 
-  public:
     unsigned char frame_counter;
 
     /// Create a new window.
