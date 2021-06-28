@@ -9,17 +9,26 @@
 #pragma once
 
 #include <istream>
+#include <numeric>
 
 namespace fprd {
 using namespace ::std;
+
+auto skip_to(istream &is, char c) -> void { is.ignore(numeric_limits<streamsize>::max(), c); }
 
 /// Ignore the specified number of lines.
 /// @param is
 /// @param lines
 /// @return auto
-auto skip_lines(istream &is, unsigned char lines) {
-    for (unsigned char i{0}; i < lines; i++) {
-        is.ignore(numeric_limits<streamsize>::max(), '\n');
+auto skip_lines(istream &is, int lines) {
+    for (auto i{0}; i < lines; i++) {
+        skip_to(is, '\n');
+    }
+}
+
+template <char delim> auto skip_fields(istream &is, int fields) {
+    for (auto i{0}; i < fields; i++) {
+        skip_to(is, delim);
     }
 }
 
@@ -31,56 +40,10 @@ auto getline(istream &is) {
     return s;
 }
 
-/// @param is
-/// @return auto
-auto getstring(istream &is) {
-    string s;
-    is >> s;
-    return s;
+template <class T> auto get(istream &is) -> auto {
+    T t;
+    is >> t;
+    return t;
 }
 
-/// @param is
-/// @return auto
-auto getfloat(istream &is) {
-    float f;
-    is >> f;
-    return f;
-}
-
-/// @param is
-/// @return auto
-auto getulong(istream &is) {
-    ulong l;
-    is >> l;
-    return l;
-}
-
-/// @param is
-/// @return auto
-auto getuint(istream &is) {
-    uint i;
-    is >> i;
-    return i;
-}
-
-/// @param is
-/// @return auto
-auto getint(istream &is) {
-    int i;
-    is >> i;
-    return i;
-}
-
-/// @param is
-/// @return auto
-auto getchar(istream &is) {
-    char c;
-    is >> c;
-    return c;
-}
-
-/// @param is
-/// @param delim
-/// @return auto
-auto skip_to(istream &is, char delim) { is.ignore(numeric_limits<streamsize>::max(), delim); }
 }; // namespace fprd
