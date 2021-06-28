@@ -20,7 +20,7 @@ using namespace std;
 /// @tparam Float
 /// @param f
 /// @return auto
-template <u_char precision, class Float> auto ftos(Float f) requires is_floating_point_v<Float> {
+template <int precision, floating_point F> auto ftos(F f) {
     ostringstream oss;
     oss << setprecision(precision) << fixed << f;
     return oss.str();
