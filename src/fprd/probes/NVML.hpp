@@ -26,6 +26,7 @@
 namespace fprd {
 using namespace std;
 
+namespace probe {
 namespace nvml {
 /// Settings
 /// Maximum numbers of active processes shown.
@@ -108,4 +109,5 @@ struct NVML {
         return devs;
     }
 };
+} // namespace probe
 }; // namespace fprd
