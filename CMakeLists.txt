@@ -3,41 +3,42 @@ cmake_minimum_required(VERSION 3.18.3 FATAL_ERROR)
 project(
   FPRDesktop
   VERSION 0.0
-  DESCRIPTION "Desktop printer for FPR's personal use."
+  DESCRIPTION "Performance monitor for FPR's personal use."
   LANGUAGES C CXX)
 
-# Development tools
-find_package(Doxygen REQUIRED dot) # Documentation
+# Documentation
+find_package(Doxygen REQUIRED dot)
+set(DOXYGEN_REFERENCED_BY_RELATION YES)
+set(DOXYGEN_SOURCE_BROWSER YES)
+set(DOXYGEN_EXTRACT_ALL YES)
+set(DOXYGEN_EXTRACT_PRIVATE YES)
+set(DOXYGEN_EXTRACT_STATIC YES)
+set(DOXYGEN_STRIP_CODE_COMMENTS NO)
+doxygen_add_docs(doc src)
 
-# List of products
-add_executable(fprdesktop)
-
-# Target properties
-target_compile_features(fprdesktop PUBLIC cxx_std_20)
-target_include_directories(
-  fprdesktop PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}/src /usr/include/freetype2)
-# compile and link flags
-list(APPEND fprdesktop_compile_options -fno-rtti -fno-exceptions -Wall -g3)
-list(APPEND fprdesktop_link_options)
-list(APPEND fprdesktop_link_libraries tbb X11 cairo pthread
-     /opt/cuda/lib64/stubs/libnvidia-ml.so)
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang") # Use LTO if clang is available.
-  list(APPEND fprdesktop_compile_options -flto=thin)
-  list(APPEND fprdesktop_link_options -flto=thin)
+# Main library
+add_library(libfprd INTERFACE)
+target_compile_features(libfprd INTERFACE cxx_std_20)
+target_include_directories(libfprd INTERFACE src ${CMAKE_CURRENT_BINARY_DIR}/src /usr/include/freetype2)
+target_compile_options(libfprd INTERFACE -fno-rtti -fno-exceptions -Wall -g3)
+string(TOLOWER ${CMAKE_BUILD_TYPE} build_type)
+if(build_type MATCHES debug)
+  message(STATUS "Debug build.")
+  message(STATUS " Enabled sanitizers: address, undefined.")
+  target_compile_options(libfprd INTERFACE -O3 -fsanitize=address,undefined)
+  target_link_options(libfprd INTERFACE -O3 -fsanitize=address,undefined)
 endif()
-if(${CMAKE_BUILD_TYPE} STREQUAL "Debug") # Sanitize everything in debug mode
-  list(APPEND fprdesktop_compile_options -fsanitize=address,undefined)
-  list(APPEND fprdesktop_link_options -fsanitize=address,undefined)
-  list(APPEND fprdesktop_link_libraries profiler)
+if(build_type MATCHES release)
+  message(STATUS "Release build.")
+  target_compile_options(libfprd INTERFACE -flto)
+  target_link_options(libfprd INTERFACE -flto)
 endif()
-target_compile_options(fprdesktop PUBLIC ${fprdesktop_compile_options})
-target_link_options(fprdesktop PUBLIC ${fprdesktop_link_options})
-target_link_libraries(fprdesktop PRIVATE ${fprdesktop_link_libraries})
+target_link_libraries(libfprd INTERFACE X11 cairo pthread /opt/cuda/lib64/stubs/libnvidia-ml.so)
+add_dependencies(libfprd doc)
 
-# Sources
-doxygen_add_docs(doc src include)
-target_sources(fprdesktop PRIVATE src/main.cpp)
+# Executable
+add_executable(fprd src/main.cpp)
+target_link_libraries(fprd PRIVATE libfprd)
 
 # Configured files
-configure_file(src/fprd/Config.cmake.hpp
-               ${CMAKE_CURRENT_BINARY_DIR}/src/fprd/Config.hpp)
+configure_file(src/fprd/Config.cmake.hpp ${CMAKE_CURRENT_BINARY_DIR}/src/fprd/Config.hpp)
