@@ -65,9 +65,7 @@ struct DynamicInfo {
     llvm::SmallVector<nvmlProcessInfo_t, max_procs> procs;
 };
 
-auto get_data(ID id) -> auto {
-    DynamicInfo data;
-
+auto update_data(DynamicInfo &data, ID id) -> void {
     nvmlDeviceGetUtilizationRates(id, &data.util);
     nvmlDeviceGetMemoryInfo(id, &data.mem);
     nvmlDeviceGetFanSpeed(id, &data.fan);
@@ -86,8 +84,6 @@ auto get_data(ID id) -> auto {
         nvmlDeviceGetGraphicsRunningProcesses_v2(id, &proc_count, procs.data());
         copy(procs.begin(), procs.begin() + max_procs, back_inserter(data.procs));
     }
-
-    return data;
 }
 } // namespace device
 }; // namespace nvml
