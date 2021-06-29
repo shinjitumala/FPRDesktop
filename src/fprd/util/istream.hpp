@@ -46,4 +46,8 @@ template <class T> auto get(istream &is) -> auto {
     return t;
 }
 
+template <class T> auto get(istream &is, T &t) -> void {
+    is >> t;
+}
+
 }; // namespace fprd
