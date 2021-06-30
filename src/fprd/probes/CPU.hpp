@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <dirent.h>
 #include <llvm/ADT/SmallString.h>
 #include <unistd.h>
 
@@ -148,33 +149,30 @@ struct Procs {
     llvm::SmallVector<Proc, 512> procs;
 };
 
-auto is_number(string &&s) {
-    return all_of(s.begin(), s.end(), [](auto c) { return '0' <= c && c <= '9'; });
-}
+auto is_number{[](string_view s) { return llvm::all_of(s, [](auto c) { return '0' <= c && c <= '9'; }); }};
 
 auto parse_procs(Procs &procs) -> void {
-    using ranges::views::filter;
+    procs.procs.resize(512);
 
-    const auto size{[] {
-        const auto di{directory_iterator("/proc")};
-        return distance(begin(di), end(di));
-    }()};
-    procs.procs.resize(size);
-    const auto di{directory_iterator("/proc")};
-    const auto paths{llvm::iterator_range(begin(di), end(di))};
-    const auto zipped{zip(procs.procs, paths)};
+    auto *const dir{opendir("/proc")};
+    if (dir == nullptr) {
+        fatal_error("Failed to open /proc");
+    }
 
-    for_each(execution::par, zipped.begin(), zipped.end(), [](auto pair) {
-        auto [proc, d]{pair};
-        if (!d.is_directory()) {
-            return;
+    const dirent *de;
+    llvm::SmallString<64> path_buf;
+    int count{0};
+    while (de = readdir(dir), de != nullptr) {
+        if (!is_number(de->d_name)) {
+            continue;
         }
-        if (!is_number(d.path().stem().string())) {
-            return;
-        }
+        path_buf = "/proc/";
+        path_buf.append(de->d_name);
+        path_buf.append("/stat");
 
-        const auto &path{d.path()};
-        ifstream is{path / "stat"};
+        auto &proc{procs.procs[count]};
+        ifstream is{path_buf.c_str()};
+
         get(is, proc.pid); // First data is PID
 
         /// Skip to usage data.
@@ -185,7 +183,15 @@ auto parse_procs(Procs &procs) -> void {
         for (auto i{0}; i < 4; i++) { // The next four fields are usage times.
             proc.usage += get<unsigned long>(is);
         }
-    });
+
+        count++;
+        if (512 <= count) {
+            cerr << "More than 512 processes!" << endl;
+            break;
+        }
+    }
+    closedir(dir);
+    procs.procs.resize(count);
 }
 
 /// Information that updates frequently.
