@@ -49,40 +49,6 @@ template <class V> struct FreedSpan : public span<V> {
     }
 };
 
-class Connection;
-
-/// Represents a created window.
-///
-/// WARNING: The user is responsible for ensuring that Connection lives longer
-/// than the Window itself.
-class Window {
-    friend Connection;
-
-    /// The connetion that created this window.
-    const Connection &c;
-
-   public:
-    /// Must be optional to allow moving.
-    optional<::Window> id;
-
-    /// Window can only be created by a connection.
-    /// @param c
-    /// @param id
-    Window(const Connection &c, ::Window id) : c{c}, id{id} {}
-
-    /// Copying is disallowed.
-    Window(const Window &) = delete;
-    /// Moving is allowed however.
-    /// @param w
-    Window(Window &&w) noexcept : c{w.c}, id{w.id} { w.id = nullopt; }
-
-    /// Destructor.
-    ~Window();
-
-    /// Allow explicit conversion to XID.
-    explicit operator ::Window() const { return *id; };
-};
-
 /// A connection to a X11 server.
 /// Why did they name it "Display" anyway? The name is VERY confusing because
 /// one could misunderstand that this represents a physical display.
@@ -178,8 +144,8 @@ class Connection {
     [[nodiscard]] auto create_window(::Window parent, Position<int> pos, Area<unsigned int> size,
                                      unsigned int border_w, int depth, unsigned int window_class, Visual *visual,
                                      unsigned long value_mask, const XSetWindowAttributes &attributes) const {
-        return Window{*this, XCreateWindow(d, parent, pos.x, pos.y, size.w, size.h, border_w, depth, window_class,
-                                           visual, value_mask, const_cast<XSetWindowAttributes *>(&attributes))};
+        return XCreateWindow(d, parent, pos.x, pos.y, size.w, size.h, border_w, depth, window_class, visual,
+                             value_mask, const_cast<XSetWindowAttributes *>(&attributes));
     }
 
     [[nodiscard]] auto root_window(int screen) const { return XRootWindow(d, screen); }
@@ -215,19 +181,15 @@ class Connection {
     [[nodiscard]] auto move_window(const Window &w, Position<int> pos) const {
         return XMoveWindow(d, static_cast<::Window>(w), pos.x, pos.y);
     }
-};
 
-Window::~Window() {
-    if (id) {
-        XDestroyWindow(c.d, *id);
-    }
-}
+    auto destroy_window(const Window w) -> void { XDestroyWindow(d, w); }
+};
 
 /// For easy debugging.
 /// @param os
 /// @param attr
 /// @return ostream&
-ostream &operator<<(ostream &os, const XWindowAttributes &attr) {
+auto operator<<(ostream &os, const XWindowAttributes &attr) -> ostream & {
     os << "{" << nl;
     {
         dbg::IndentGuard ig{};
