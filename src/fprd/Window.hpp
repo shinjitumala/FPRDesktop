@@ -9,64 +9,93 @@
 #pragma once
 
 #include <fprd/Theme.hpp>
+#include <fprd/util/ranges.hpp>
 #include <fprd/wrapper/Cairo.hpp>
 #include <fprd/wrapper/Xlib.hpp>
+#include <llvm/ADT/SmallString.h>
 
 namespace fprd {
 using namespace std;
 
-/// Is this design pattern bad?
-/// I feel like this is like a GOD-class.
-class Window : public cairo::Surface {
-    using Base = cairo::Surface;
+/// Some constant values for our window.
+namespace window {
+/// The size of all fonts.
+static constexpr double fontsize{10};
+/// letter: The size of a single character.
+/// delta: The adjustment for the position of each line.
+static auto [csize, line_delta]{[] {
+    cairo::Surface surf({});
+    surf.set_font(theme::normal);
+    surf.set_font_size(fontsize);
+    const auto e{surf.text_ext("A")};
+    return make_pair(Area{e.width, fontsize}, Position{-0.0, -(fontsize - e.height) / 2});
+}()};
+}; // namespace window
 
-   public:
+///
+/// @tparam W Width in characters.
+/// @tparam H Height in characters.
+template <size_t W, size_t H> class Window {
+  public:
+    using Lines = array<llvm::SmallString<W>, H>;
+
+  private:
     /// Our connection to the X11 server.
     x11::Connection x11;
     /// The X11 window we create.
-    x11::Window w;
+    ::Window w;
 
     /// The buffer surface.
-    cairo::Surface buf;
+    cairo::Surface canvas;
     /// The surface connected to the X11 window.
     cairo::Surface win;
 
-    /// The base flush function should be private.
-    using Base::flush;
-
-    unsigned char frame_counter;
-
+  public:
     /// Create a new window.
     /// @param x11
     /// @param pos
     /// @param size
-    Window(string_view display_name, Position<int> pos, Area<unsigned int> size)
-        : Window{x11::Connection{display_name.data()}, pos, size} {}
+    Window(string_view display_name, Position<int> pos)
+        : Window{x11::Connection{display_name.data()}, pos, window::csize.scale({W, H})} {}
+
+    Window(const Window &) = delete;
+
+    /// @param s Has to be non-const because using `llvm::SmallVector<S>::c_str()` might modify itself.
+    auto update(Lines s) -> void {
+        multiline_print(s);
+        flush();
+    }
+
+  private:
+    /// @param lines
+    auto multiline_print(Lines &lines) -> void {
+        for (const auto [idx, line] : lines | enumerate) {
+            canvas.move(Position{0.0, (idx + 1) * window::csize.h} + window::line_delta);
+            canvas.set_font(theme::normal);
+            canvas.set_font_size(window::fontsize);
+            canvas.set_color(theme::white);
+            canvas.print_text(line.c_str());
+        }
+    }
 
     /// Flush the draw commands and draw to the x11 window.
     void flush() {
-        Base::flush();
+        canvas.flush();
 
-        buf.set_source(theme::black);
-        buf.paint();
-        buf.draw(*this);
-        buf.flush();
-
-        win.draw(buf);
-
+        win.paste(canvas);
         x11.flush();
+
+        canvas.set_color({"202020"});
+        canvas.fill_surface();
     }
 
-    Window(const Window &) = delete;
-    Window(Window &&) = default;
-
-  private:
     /// For clean code.
     /// @param x11
     /// @param pos
     /// @param size
     Window(x11::Connection &&x11, Position<int> pos, Area<unsigned int> size)
-        : cairo::Surface{size}, x11{move(x11)}, w{[&x11 = this->x11, pos, size]() {
+        : x11{move(x11)}, w{[&x11 = this->x11, pos, size]() {
+              int status;
               /// Obtain the correct root window and create a new window.
               /// FIXME: The window disappears when I click on the
               /// desktop LOL.
@@ -94,14 +123,23 @@ class Window : public cairo::Surface {
                                            CWOverrideRedirect | CWBackingStore | CWBackPixel, attr);
               }()};
 
-              x11.change_property(w, x11.atom("_NET_WM_WINDOW_TYPE"), XA_ATOM, 32, PropModeReplace,
-                                  array<unsigned long, 1>{x11.atom("_NET_WM_WINDOW_TYPE_DESKTOP")});
+              status = x11.change_property(w, x11.atom("_NET_WM_WINDOW_TYPE"), XA_ATOM, 32, PropModeReplace,
+                                           array<unsigned long, 1>{x11.atom("_NET_WM_WINDOW_TYPE_DESKTOP")});
+              if (status == 0) {
+                  fatal_error("X11: Failed to change property.");
+              }
 
-              x11.map_window(w);
+              status = x11.map_window(w);
+              if (status == 0) {
+                  fatal_error("X11: Failed to map window.");
+              }
 
-              x11.move_window(w, pos);
+              status = x11.move_window(w, pos);
+              if (status == 0) {
+                  fatal_error("X11: Failed to move window.");
+              }
               return w;
           }()},
-          buf{size}, win{this->x11, this->w} {}
+          canvas{size}, win{this->x11, this->w} {}
 };
 }; // namespace fprd
