@@ -44,12 +44,13 @@ template <BarConfig cfg> class Bar {
         if (view.size() < 4) {
             fatal_error("A `Bar`'s size cannot be less than 4.");
         }
+
+        view.front() = cfg.lb;
+        view.back() = cfg.rb;
     }
 
     /// @param ratio How much the bar is filled. Minimum 0, maximum 1.
     auto update(long double ratio) -> void {
-        view.front() = cfg.lb;
-        view.back() = cfg.rb;
         // Minus the brackets
         const auto inner_size{view.size() - 2};
         const auto filled{static_cast<long>(inner_size * ratio)};
