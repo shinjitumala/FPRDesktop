@@ -127,7 +127,7 @@ struct MemInfo {
 
 auto parse_mem_info(MemInfo &mi) -> void {
     ifstream is{"/proc/meminfo"};
-    skip_lines(is, 1);
+    skip_lines(is, 2);
     get_value(is, mi.free);
 }
 
