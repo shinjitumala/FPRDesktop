@@ -19,6 +19,12 @@ namespace fprd {
 using namespace std;
 
 class CPUWindow {
+    /// Used to store intermediate data required to gather the presented data.
+    /// In this case, we have to sample the time spent in system/user ourselves.
+    struct State {
+        probe::cpu::Stat stat;
+    };
+
   public:
     static constexpr int width{64};
     static constexpr int height{36};
@@ -36,6 +42,8 @@ class CPUWindow {
     atomic<bool> run;
     thread t;
 
+    State state;
+
   public:
     CPUWindow(Position<float> pos) : w{"", pos}, si{probe::cpu::get_info()}, run{true}, t{[this] { runner(); }} {}
     ~CPUWindow() { t.join(); }
@@ -46,22 +54,40 @@ class CPUWindow {
     auto runner() -> void {
         w.update(buf);
         int thread_count{stoi(si.threads.str().data())};
+        update_state();
 
-        buf[0] = [&name = si.name] {
+        [&name = si.name, &buf = buf[0]] {
             const auto size{name.size()};
             string str((width - size) / 2, ' ');
-            str.append(name.begin(), name.end());
-            return str;
+            str.append("%s");
+            print_to(buf, str.c_str(), name.data());
         }();
 
         probe::cpu::update_data(di, thread_count);
         while (run) {
             auto tp{now()};
+
             w.update(buf);
             probe::cpu::update_data(di, thread_count);
+            update_buf();
+            update_state();
 
             this_thread::sleep_until(tp + 1s);
         }
     }
+
+    auto update_buf() -> void {
+        {
+            const auto &last_cpu{state.stat.cpu};
+            const auto &cur_cpu{di.stat.cpu};
+            const auto cpu_idle{cur_cpu.idle - last_cpu.idle};
+            const auto cpu_active{(cur_cpu.user - last_cpu.user) + (cur_cpu.user - last_cpu.user)};
+
+            const auto util{(long double)cpu_active / (cpu_active + cpu_idle) * 100};
+            print_to(buf[1], "Utilization: %.2Lf%%", util);
+        }
+    }
+
+    auto update_state() -> void { state.stat = di.stat; }
 };
 }; // namespace fprd
