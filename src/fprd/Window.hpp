@@ -17,6 +17,10 @@
 namespace fprd {
 using namespace std;
 
+template <size_t S, class... Args> auto print_to(array<char, S> &dst, string_view fmt, Args... args) -> auto {
+    return snprintf(dst.data(), dst.size(), fmt.data(), args...);
+}
+
 /// Some constant values for our window.
 namespace window {
 /// The size of all fonts.
