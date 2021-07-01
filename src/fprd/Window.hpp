@@ -37,7 +37,13 @@ static auto [csize, line_delta]{[] {
 /// @tparam H Height in characters.
 template <size_t W, size_t H> class Window {
   public:
-    using Lines = array<llvm::SmallString<W>, H>;
+    struct Lines : array<array<char, W>, H> {
+        Lines() {
+            for (auto &l : *this) {
+                print_to(l, " ");
+            }
+        }
+    };
 
   private:
     /// Our connection to the X11 server.
