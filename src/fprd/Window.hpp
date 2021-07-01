@@ -38,10 +38,11 @@ static auto [csize, line_delta]{[] {
 /// @tparam H Height in characters.
 template <size_t W, size_t H> class Window {
   public:
-    struct Lines : array<array<char, W>, H> {
+    struct Lines : array<array<char, W + 1>, H> {
+        /// Initialized by filling with spaces.
         Lines() {
             for (auto &l : *this) {
-                print_to(l, " ");
+                print_to(l, "%*c", W, ' ');
             }
         }
     };
