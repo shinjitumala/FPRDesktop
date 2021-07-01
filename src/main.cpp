@@ -21,14 +21,14 @@ namespace fprd {
 using namespace ::std;
 using namespace ::std::chrono;
 
-atomic<CPUWindow *> cpu{nullptr};
+atomic<cpu::Widget *> wcpu{nullptr};
 
 /// Signal handler
 /// @param signal
 /// @return auto
 auto stop(int signal) -> void {
-    if (cpu != nullptr) {
-        cpu.load()->stop();
+    if (wcpu != nullptr) {
+        wcpu.load()->stop();
     }
 };
 
@@ -42,8 +42,8 @@ auto main() -> int {
     // Since we do not use C, we can disable this to be faster.
     ios::sync_with_stdio(false);
 
-    CPUWindow w{{0, 0}};
-    fprd::cpu = &w;
+    fprd::cpu::Widget w{{0, 0}};
+    fprd::wcpu = &w;
 
     return 0;
 }
