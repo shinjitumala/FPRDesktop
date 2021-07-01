@@ -52,18 +52,20 @@ class CPUWindow {
 
   private:
     auto runner() -> void {
-        w.update(buf);
+        w.update(buf); // Update once to make the window background appar immediately.
+
         int thread_count{stoi(si.threads.str().data())};
+
+        {
+            // CPU name at the header.
+            const auto left_margin{(width - si.name.size()) / 2};
+            print_to(buf[0], "%*c%s", left_margin, ' ', si.name.data());
+        }
+
+        // The initial probing.
+        probe::cpu::update_data(di, thread_count);
         update_state();
 
-        [&name = si.name, &buf = buf[0]] {
-            const auto size{name.size()};
-            string str((width - size) / 2, ' ');
-            str.append("%s");
-            print_to(buf, str.c_str(), name.data());
-        }();
-
-        probe::cpu::update_data(di, thread_count);
         while (run) {
             auto tp{now()};
 
