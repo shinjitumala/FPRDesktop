@@ -56,8 +56,8 @@ template <class T> auto get_value(istream &is, T &t) -> void {
 /// Information that does not need to be updated after start-up.
 struct StaticInfo {
     llvm::SmallString<128> name;
-    llvm::SmallString<3> threads;
-    llvm::SmallString<8> mem_total; // GB
+    int threads;
+    long mem_total; // KB
 };
 
 auto get_info() -> auto {
@@ -68,11 +68,11 @@ auto get_info() -> auto {
         skip_lines(is, 4);
         info.name = get_string(is);
         skip_lines(is, 5);
-        info.threads = get_string(is);
+        get_value(is, info.threads);
     }
     {
         ifstream is{"/proc/meminfo"};
-        info.mem_total = ftos<1>(get<unsigned long>(is) /* KB */ * 1e-6L) + "GB";
+        get_value(is, info.mem_total);
     }
     return info;
 }
@@ -122,12 +122,12 @@ auto parse_cpu_info(int thread_count, CpuInfo &data) -> void {
 }
 
 struct MemInfo {
-    int free;
+    long free; // KB
 };
 
 auto parse_mem_info(MemInfo &mi) -> void {
     ifstream is{"/proc/meminfo"};
-    skip_lines(is, 2);
+    skip_lines(is, 1);
     get_value(is, mi.free);
 }
 
