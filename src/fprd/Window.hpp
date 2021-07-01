@@ -67,20 +67,20 @@ template <size_t W, size_t H> class Window {
     Window(const Window &) = delete;
 
     /// @param s Has to be non-const because using `llvm::SmallVector<S>::c_str()` might modify itself.
-    auto update(Lines s) -> void {
+    auto update(const Lines s) -> void {
         multiline_print(s);
         flush();
     }
 
   private:
     /// @param lines
-    auto multiline_print(Lines &lines) -> void {
+    auto multiline_print(const Lines &lines) -> void {
         for (const auto [idx, line] : lines | enumerate) {
             canvas.move(Position{0.0, (idx + 1) * window::csize.h} + window::line_delta);
             canvas.set_font(theme::normal);
             canvas.set_font_size(window::fontsize);
             canvas.set_color(theme::white);
-            canvas.print_text(line.c_str());
+            canvas.print_text(line.data());
         }
     }
 
