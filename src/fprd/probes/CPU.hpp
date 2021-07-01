@@ -15,7 +15,6 @@
 #include <chrono>
 #include <dbg/Log.hpp>
 #include <dbg/Logger.hpp>
-#include <execution>
 #include <filesystem>
 #include <fprd/probes/UNIX.hpp>
 #include <fprd/util/istream.hpp>
