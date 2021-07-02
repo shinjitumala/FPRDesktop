@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <cairo/cairo.h>
 #include <fprd/Theme.hpp>
 #include <fprd/util/format.hpp>
 #include <fprd/util/ranges.hpp>
@@ -83,7 +84,7 @@ template <size_t W, size_t H> class Window {
     Window(const Window &) = delete;
 
     /// @param s Has to be non-const because using `llvm::SmallVector<S>::c_str()` might modify itself.
-    auto update(const Lines s) -> void {
+    auto update(const Lines &s) -> void {
         multiline_print(s);
         flush();
     }
