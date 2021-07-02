@@ -38,12 +38,26 @@ static auto [csize, line_delta]{[] {
 /// @tparam H Height in characters.
 template <size_t W, size_t H> class Window {
   public:
-    struct Lines : array<array<char, W + 1>, H> {
+    class Lines : public array<array<char, W + 1>, H> {
+        using Base = array<array<char, W + 1>, H>;
+
+      public:
+        using Base::operator[];
+
         /// Initialized by filling with spaces.
         Lines() {
             for (auto &l : *this) {
-                print_to(l, "%*c", W, ' ');
+                snprintf(l, "%*c", W, ' ');
             }
+        }
+
+        template <class... Args> auto printf(size_t line, string_view fmt, Args... args) -> auto {
+            return snprintf(operator[](line), fmt, args...);
+        }
+        template <class... Args>
+        auto printf_st(size_t line, size_t s, size_t e, string_view fmt, Args... args) -> auto {
+            auto &l{(*this)[line]};
+            return snprintf_st({&l[s], &l[e]}, fmt, args...);
         }
     };
 
@@ -93,7 +107,7 @@ template <size_t W, size_t H> class Window {
         win.paste(canvas);
         x11.flush();
 
-        canvas.set_color({"202020"});
+        canvas.set_color(theme::black);
         canvas.fill_surface();
     }
 
