@@ -139,16 +139,15 @@ struct Proc {
     pid_t pid;
     char state;
     unsigned long usage;
+    unsigned long mem;
 };
 
-struct Procs {
-    llvm::SmallVector<Proc, 512> procs;
-};
+using Procs = llvm::SmallVector<Proc, 512>;
 
 auto is_number{[](string_view s) { return llvm::all_of(s, [](auto c) { return '0' <= c && c <= '9'; }); }};
 
 auto parse_procs(Procs &procs) -> void {
-    procs.procs.resize(512);
+    procs.resize(512);
 
     auto *const dir{opendir("/proc")};
     if (dir == nullptr) {
@@ -156,28 +155,39 @@ auto parse_procs(Procs &procs) -> void {
     }
 
     const dirent *de;
-    llvm::SmallString<64> path_buf;
+    static llvm::SmallString<64> path_buf;
     int count{0};
     while (de = readdir(dir), de != nullptr) {
         if (!is_number(de->d_name)) {
             continue;
         }
-        path_buf = "/proc/";
-        path_buf.append(de->d_name);
-        path_buf.append("/stat");
+        auto &proc{procs[count]};
+        {
+            path_buf = "/proc/";
+            path_buf.append(de->d_name);
+            path_buf.append("/stat");
+            ifstream is{path_buf.c_str()};
 
-        auto &proc{procs.procs[count]};
-        ifstream is{path_buf.c_str()};
+            get(is, proc.pid); // First data is PID
 
-        get(is, proc.pid); // First data is PID
+            /// Skip to usage data.
+            skip_to(is, ')');
+            get(is, proc.state);
+            skip_fields<' '>(is, 11);
+            proc.usage = 0;
+            for (auto i{0}; i < 4; i++) { // The next four fields are usage times.
+                proc.usage += get<unsigned long>(is);
+            }
+        }
+        {
+            path_buf = "/proc/";
+            path_buf.append(de->d_name);
+            path_buf.append("/statm");
+            ifstream is{path_buf.c_str()};
 
-        /// Skip to usage data.
-        skip_to(is, ')');
-        get(is, proc.state);
-        skip_fields<' '>(is, 11);
-        proc.usage = 0;
-        for (auto i{0}; i < 4; i++) { // The next four fields are usage times.
-            proc.usage += get<unsigned long>(is);
+            get(is, proc.mem);
+            static const auto pagesize{sysconf(_SC_PAGESIZE)};
+            proc.mem *= pagesize;
         }
 
         count++;
@@ -187,7 +197,7 @@ auto parse_procs(Procs &procs) -> void {
         }
     }
     closedir(dir);
-    procs.procs.resize(count);
+    procs.resize(count);
 }
 
 /// Information that updates frequently.
