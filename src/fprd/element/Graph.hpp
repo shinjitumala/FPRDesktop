@@ -30,65 +30,86 @@ struct GraphConfig {
     char e;
 };
 
-constexpr GraphConfig graph_standard{'-', '|', ':', ' '};
+constexpr GraphConfig graph_standard{'-', '|', '=', ' '};
 
-template <GraphConfig cfg> class Graph {
-    vector<span<char>> line_refs;
+template <GraphConfig cfg, class Window> class VGraph {
+    using Lines = typename Window::Lines;
+
+    Position<int> tl;
+    Position<int> br;
     vector<char> history;
     size_t idx;
 
   public:
-    /// @tparam W
-    /// @tparam H
     /// @param lines
-    /// @param lt Top left
-    /// @param rb Bottom right
-    template <class Lines>
-    Graph(Lines &lines, Position<int> lt, Position<int> rb)
-        : line_refs{[&] {
-              vector<span<char>> ret;
-              const auto hs{lt.x};
-              const auto he{rb.x};
-              const auto vs{lt.y};
-              const auto ve{rb.y};
-              for (auto y{vs}; y <= ve; y++) {
-                  auto &l{lines[y]};
-                  ret.push_back({l.begin() + hs, l.begin() + he});
-              }
-              return ret;
-          }()},
-          history(line_refs[0].size() - 2), idx{0} {
+    /// @param tl Top left
+    /// @param br Bottom right
+    VGraph(Lines &lines, Position<int> tl, Position<int> br) : tl{tl}, br{br}, history(br.x - tl.x - 2), idx{0} {
 
-        auto firstline{line_refs.front()};
-        auto lastline{line_refs.back()};
+        auto &fl{lines[tl.y]};
+        auto &ll{lines[br.y - 1]};
 
-        fill(firstline.begin(), firstline.end(), cfg.tb);
-        fill(lastline.begin(), lastline.end(), cfg.tb);
-        for_each(line_refs.begin() + 1, line_refs.end() - 1, [](auto &l) {
-            l.front() = cfg.lr;
-            l.back() = cfg.lr;
+        fill(&fl[tl.x], &fl[br.x], cfg.tb);
+        fill(&ll[tl.x], &ll[br.x], cfg.tb);
+        for_each(&lines[tl.y + 1], &lines[br.y - 1], [&](auto &l) {
+            l[tl.x] = cfg.lr;
+            l[br.x - 1] = cfg.lr;
         });
     }
 
-    auto update(long double ratio) -> void {
-        const auto width{history.size()};
-        const auto height{line_refs.size() - 2};
-        history[idx] = ratio * height;
+    auto update(Lines &lines, long double ratio) -> void {
+        const auto inner_w{br.x - tl.x - 2};
+        const auto inner_h{br.y - tl.y - 2};
+        history[idx] = ratio * inner_h;
         auto lidx{0};
-        for_each(line_refs.begin() + 1, line_refs.end() - 1, [&](auto &l) {
-            for (auto i{idx}; i != (idx - 1) % width; i++, i %= width) {
-                const auto pidx{(width + i - idx) % width + 1};
-                if ((height - lidx) <= history[i]) {
-                    l[pidx] = cfg.f;
+        for_each(&lines[tl.y + 1], &lines[br.y - 1], [&](auto &l) {
+            const auto h{inner_h - lidx};
+            for (auto i{tl.x + 1}; i < br.x - 1; i++) {
+                const auto hidx{i - (tl.x + 1)};
+                if (h <= history[(inner_w + idx - hidx) % inner_w]) {
+                    l[i] = cfg.f;
                 } else {
-                    l[pidx] = cfg.e;
+                    l[i] = cfg.e;
                 }
             }
             lidx++;
         });
-        idx--;
-        idx += width;
-        idx %= width;
+        idx++;
+        idx %= inner_w;
+    }
+};
+
+template <GraphConfig cfg, class Window> class HGraph {
+    using Lines = typename Window::Lines;
+
+    Position<int> tl;
+    Position<int> br;
+    vector<char> history;
+    size_t idx;
+
+  public:
+    /// @param lines
+    /// @param tl Top left
+    /// @param br Bottom right
+    HGraph(Lines &lines, Position<int> tl, Position<int> br) : tl{tl}, br{br}, history(br.y - tl.y), idx{0} {}
+
+    auto update(Lines &lines, long double ratio) -> void {
+        const auto inner_h{br.y - tl.y};
+        const auto inner_w{br.x - tl.x};
+        history[idx] = ratio * inner_w;
+        auto lidx{0};
+        for_each(&lines[tl.y], &lines[br.y], [&](auto &l) {
+            const auto filled{history[(inner_h + idx - lidx) % inner_h]};
+            for (auto i{tl.x}; i < tl.x + filled; i++) {
+                l[i] = cfg.f;
+            }
+            for (auto i{tl.x + filled}; i < br.x; i++) {
+                l[i] = cfg.e;
+            }
+            lidx++;
+        });
+        idx++;
+        idx %= inner_h;
     }
 };
 } // namespace element

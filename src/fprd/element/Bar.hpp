@@ -10,6 +10,7 @@
 
 #include <cmath>
 #include <dbg/Log.hpp>
+#include <fprd/Window.hpp>
 #include <fprd/util/format.hpp>
 #include <span>
 
@@ -36,27 +37,32 @@ constexpr BarConfig bar_standard{
 };
 
 /// A horizontal bar.
-template <BarConfig cfg> class Bar {
-    span<char> view;
+template <BarConfig cfg, class Window> class Bar {
+    const size_t line;
+    const size_t start;
+    const size_t end;
 
   public:
-    Bar(char &start, char &end) : view{&start, &end} {
-        if (view.size() < 4) {
+    Bar(typename Window::Lines &lines, size_t line, size_t start, size_t end)
+        : line{line}, start{start}, end{end} {
+        if (end - start < 4) {
             fatal_error("A `Bar`'s size cannot be less than 4.");
         }
 
-        view.front() = cfg.lb;
-        view.back() = cfg.rb;
+        auto &l{lines[line]};
+        l[start] = cfg.lb;
+        l[end - 1] = cfg.rb;
     }
 
     /// @param ratio How much the bar is filled. Minimum 0, maximum 1.
-    auto update(long double ratio) -> void {
+    auto update(typename Window::Lines &lines, long double ratio) -> void {
         // Minus the brackets
-        const auto inner_size{view.size() - 2};
+        const auto inner_size{end - start - 2};
         const auto filled{static_cast<long>(inner_size * ratio)};
-        fill(view.begin() + 1, view.begin() + (1 + filled), cfg.fill);
-        view[1 + filled] = cfg.edge;
-        fill(view.begin() + (1 + filled + 1), view.end() - 1, cfg.empty);
+        auto &l{lines[line]};
+        fill(&l[start + 1], &l[start + 1 + filled], cfg.fill);
+        l[start + 1 + filled] = cfg.edge;
+        fill(&l[start + filled + 2], &l[end - 1], cfg.empty);
     };
 };
 }; // namespace element

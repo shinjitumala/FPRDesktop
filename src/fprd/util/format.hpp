@@ -9,25 +9,12 @@
 #pragma once
 
 #include <array>
+#include <cstdio>
+#include <span>
 #include <string_view>
 
 namespace fprd {
 using namespace std;
-/// `print_to` but with offset.
-/// Example:
-///   Passing arguments; dst = "foofoo", offset = 3, fmt = "bar"
-///   will result in dst = "foobar".
-/// @tparam S
-/// @tparam Args
-/// @param dst
-/// @param offset
-/// @param fmt
-/// @param args
-/// @return auto
-template <size_t S, class... Args>
-auto print_to(array<char, S> &dst, size_t offset, string_view fmt, Args... args) -> auto {
-    return snprintf(dst.data() + offset, dst.size() - offset, fmt.data(), args...);
-}
 /// C++ version of `snprintf` that uses array<char, S>
 /// @tparam S
 /// @tparam Args
@@ -35,27 +22,19 @@ auto print_to(array<char, S> &dst, size_t offset, string_view fmt, Args... args)
 /// @param fmt
 /// @param args
 /// @return auto
-template <size_t S, class... Args> auto print_to(array<char, S> &dst, string_view fmt, Args... args) -> auto {
-    return print_to(dst, 0, fmt, args...);
+template <size_t S, class... Args> auto snprintf(array<char, S> &dst, string_view fmt, Args... args) -> auto {
+    return ::snprintf(dst.data(), dst.size(), fmt.data(), args...);
 }
 
-/// Space terminated version of `print_to`.
-/// The other version is null terminated.
-/// @tparam S
-/// @tparam Args
-/// @param dst
-/// @param offset
-/// @param fmt
-/// @param args
-/// @return auto
-template <size_t S, class... Args>
-auto print_to_st(array<char, S> &dst, size_t offset, string_view fmt, Args... args) -> auto {
-    const auto np{print_to(dst, offset, fmt, args...)};
-    dst[np + offset] = ' ';
+/// Print to a range of character using a space character terminator.
+/// @tparam Args 
+/// @param dst 
+/// @param fmt 
+/// @param args 
+/// @return auto 
+template <class... Args> auto snprintf_st(span<char> dst, string_view fmt, Args... args) -> auto {
+    const auto np{::snprintf(dst.data(), dst.size(), fmt.data(), args...)};
+    dst[np] = ' ';
     return np;
-}
-
-template <size_t S, class... Args> auto print_to_st(array<char, S> &dst, string_view fmt, Args... args) -> auto {
-    return print_to_st(dst, 0, fmt, args...);
 }
 }; // namespace fprd
