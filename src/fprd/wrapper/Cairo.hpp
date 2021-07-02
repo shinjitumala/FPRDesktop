@@ -130,6 +130,14 @@ class Surface {
     /// @return auto
     auto flush() { cairo_surface_flush(surf); }
 
+    auto check_status() -> void {
+        const auto status{cairo_status(ctx)};
+        if (status != CAIRO_STATUS_SUCCESS) {
+            cerr << "Cairo error: " << cairo_status_to_string(status) << endl;
+            fatal_error("Fatal error.");
+        }
+    }
+
     /// Destructor.
     ~Surface() {
         cairo_destroy(ctx);
