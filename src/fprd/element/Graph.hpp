@@ -9,6 +9,7 @@
 #pragma once
 
 #include "fprd/util/ranges.hpp"
+#include <cmath>
 #include <dbg/Log.hpp>
 #include <fprd/Types.hpp>
 #include <fprd/util/format.hpp>
@@ -58,6 +59,9 @@ template <GraphConfig cfg, class Window> class VGraph {
     }
 
     auto update(Lines &lines, long double ratio) -> void {
+        if (!isfinite(ratio)) {
+            ratio = 1;
+        }
         const auto inner_w{br.x - tl.x - 2};
         const auto inner_h{br.y - tl.y - 2};
         history[idx] = ratio * inner_h;
@@ -94,6 +98,9 @@ template <GraphConfig cfg, class Window> class HGraph {
     HGraph(Lines &lines, Position<int> tl, Position<int> br) : tl{tl}, br{br}, history(br.y - tl.y), idx{0} {}
 
     auto update(Lines &lines, long double ratio) -> void {
+        if (!isfinite(ratio)) {
+            ratio = 1;
+        }
         const auto inner_h{br.y - tl.y};
         const auto inner_w{br.x - tl.x};
         history[idx] = ratio * inner_w;
