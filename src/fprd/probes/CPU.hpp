@@ -29,9 +29,6 @@ namespace fprd {
 using namespace ::std;
 using namespace ::std::filesystem;
 
-/// Settings
-constexpr auto max_procs{16};
-
 namespace probe::cpu {
 /// Utility function for parsing values from UNIX human-readable files.
 /// @param is
