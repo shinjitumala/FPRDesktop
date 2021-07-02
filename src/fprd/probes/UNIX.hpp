@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <dbg/Log.hpp>
+#include <fprd/util/format.hpp>
 #include <fstream>
 #include <istream>
 #include <string>
@@ -20,20 +21,11 @@
 namespace fprd {
 using namespace std;
 
-string get_name(pid_t pid) {
-    using namespace std::filesystem;
-    const path file{"/proc/" + to_string(pid) + "/stat"};
-    if (!exists(file)) {
-        return "<E: Missing file>";
-    }
-    ifstream ifs{file};
-    ifs.ignore(numeric_limits<streamsize>::max(), '(');
-    return [&]() {
-        string name;
-        for (char c; ifs >> c, c != ')';) {
-            name += c;
-        }
-        return name;
-    }();
+template <class Storage> auto get_name(pid_t pid, Storage &dst) -> void {
+    static array<char, 32> buf;
+
+    snprintf(buf, "/proc/%d/comm", pid);
+    ifstream is{buf.data()};
+    copy(istream_iterator<char>(is), istream_iterator<char>(), back_inserter(dst));
 }
 }; // namespace fprd
