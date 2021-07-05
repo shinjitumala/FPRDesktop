@@ -164,7 +164,13 @@ class Connection {
                                protocols.size());
     }
 
-    auto atom(string &&name) const { return XInternAtom(d, name.data(), False); };
+    [[nodiscard]] auto atom(string_view name) const -> auto {
+        const auto atom{XInternAtom(d, name.data(), False)};
+        if (atom == None) {
+            fatal_error("Atom nout found: " << name);
+        }
+        return atom;
+    };
 
     template <class Element, size_t size>
     [[nodiscard]] auto change_property(const Window &w, Atom property, Atom type, int format, int mode,
