@@ -22,7 +22,7 @@ using namespace std;
 /// Some constant values for our window.
 namespace window {
 /// The size of all fonts.
-static constexpr double fontsize{10};
+static constexpr double fontsize{16};
 /// letter: The size of a single character.
 /// delta: The adjustment for the position of each line.
 static auto [csize, line_delta]{[] {
