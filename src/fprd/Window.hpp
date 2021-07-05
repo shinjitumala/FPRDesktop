@@ -142,8 +142,17 @@ template <size_t W, size_t H> class Window {
                                            CWOverrideRedirect | CWBackingStore | CWBackPixel, attr);
               }()};
 
+              // This is needed to make the window NOT disappear when we click on the desktop.
+              // At least on LXDE, that's how it works.
               status = x11.change_property(w, x11.atom("_NET_WM_WINDOW_TYPE"), XA_ATOM, 32, PropModeReplace,
-                                           array<unsigned long, 1>{x11.atom("_NET_WM_WINDOW_TYPE_DESKTOP")});
+                                           array<unsigned long, 1>{x11.atom("_NET_WM_WINDOW_TYPE_DOCK")});
+              if (status == 0) {
+                  fatal_error("X11: Failed to change property.");
+              }
+
+              // Request for the window to be on all desktops.
+              status = x11.change_property(w, x11.atom("_NET_WM_DESKTOP"), XA_CARDINAL, 32, PropModeAppend,
+                                           array<unsigned int, 1>{0xFFFFFFFF});
               if (status == 0) {
                   fatal_error("X11: Failed to change property.");
               }
@@ -157,6 +166,7 @@ template <size_t W, size_t H> class Window {
               if (status == 0) {
                   fatal_error("X11: Failed to move window.");
               }
+
               return w;
           }()},
           canvas{this->x11, this->w} {}
