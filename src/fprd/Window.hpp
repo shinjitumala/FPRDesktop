@@ -70,8 +70,6 @@ template <size_t W, size_t H> class Window {
 
     /// The buffer surface.
     cairo::Surface canvas;
-    /// The surface connected to the X11 window.
-    cairo::Surface win;
 
   public:
     /// Create a new window.
@@ -104,8 +102,6 @@ template <size_t W, size_t H> class Window {
     /// Flush the draw commands and draw to the x11 window.
     void flush() {
         canvas.flush();
-
-        win.paste(canvas);
         x11.flush();
 
         canvas.set_color(theme::black);
@@ -163,6 +159,6 @@ template <size_t W, size_t H> class Window {
               }
               return w;
           }()},
-          canvas{size}, win{this->x11, this->w} {}
+          canvas{this->x11, this->w} {}
 };
 }; // namespace fprd
