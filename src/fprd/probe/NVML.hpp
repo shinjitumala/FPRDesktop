@@ -13,7 +13,6 @@
 
 #include <condition_variable>
 #include <dbg/Log.hpp>
-#include <fprd/probes/UNIX.hpp>
 #include <fprd/util/ostream.hpp>
 #include <fprd/util/time.hpp>
 #include <fprd/util/to_string.hpp>

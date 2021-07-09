@@ -16,7 +16,6 @@
 #include <dbg/Log.hpp>
 #include <dbg/Logger.hpp>
 #include <filesystem>
-#include <fprd/probes/UNIX.hpp>
 #include <fprd/util/istream.hpp>
 #include <fprd/util/ranges.hpp>
 #include <fprd/util/time.hpp>
@@ -72,36 +71,6 @@ auto get_info() -> auto {
         get_value(is, info.mem_total);
     }
     return info;
-}
-
-struct Stat {
-    struct Line {
-        unsigned long user;
-        unsigned long system;
-        unsigned long idle;
-    };
-
-    Line cpu;
-    llvm::SmallVector<Line, 16> threads;
-};
-
-auto parse_stat_line(istream &is, Stat::Line &s) -> void {
-    skip_to(is, ' ');               // Skip CPU name.
-    get<unsigned long>(is, s.user); // 1st value
-    skip_to(is, ' ');
-    skip_to(is, ' ');                 // Skip 2nd value (nice)
-    get<unsigned long>(is, s.system); // 3rd value
-    get<unsigned long>(is, s.idle);   // 4th value
-    skip_lines(is, 1);
-};
-
-auto parse_stat(int thread_count, Stat &data) -> void {
-    ifstream is{"/proc/stat"};
-    parse_stat_line(is, data.cpu);
-    data.threads.resize(thread_count);
-    for (auto &t : data.threads) {
-        parse_stat_line(is, t);
-    }
 }
 
 struct CpuInfo {
